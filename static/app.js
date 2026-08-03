@@ -19,7 +19,13 @@ const els = {
   searchCancel: document.getElementById("searchCancel"),
   headerSearchBtn: document.getElementById("headerSearchBtn"),
   searchSuggestions: document.getElementById("searchSuggestions"),
-  homeMainContent: document.getElementById("homeMainContent"),
+  searchSuggestionsWrapper: document.getElementById("searchSuggestionsWrapper"),
+  searchTypeChips: document.querySelectorAll(".search-type-chip"),
+  heroShowcase: document.getElementById("heroShowcase"),
+  storiesSection: document.getElementById("storiesSection"),
+  sectionNew: document.getElementById("sectionNew"),
+  sectionTop: document.getElementById("sectionTop"),
+  gridTitle: document.getElementById("gridTitle"),
   tabs: document.querySelectorAll(".tab-chip"),
   grid: document.getElementById("grid"),
   emptyState: document.getElementById("emptyState"),
@@ -56,6 +62,7 @@ const els = {
 let state = {
   currentCategory: "",
   currentSearch: "",
+  searchType: "all",
   currentMovie: null,
   favoriteIds: new Set(),
   currentView: "home",
@@ -118,7 +125,7 @@ function buildCard(movie, index = 0, rank = null) {
       <div class="movie-card-title">${escapeHtml(movie.title)}</div>
       <div class="movie-card-stats">
         <span>👁 ${formatViews(movie.views)}</span>
-        <span>⭐ 9.${(movie.id % 9) + 1}</span>
+        <span style="color:var(--gold);font-weight:700">🔑 ${movie.code}</span>
       </div>
     </div>
   `;
@@ -386,6 +393,14 @@ async function openModal(movie) {
   state.currentMovie = movie;
   els.modalTitle.textContent = movie.title;
   els.modalDesc.textContent = movie.description || "";
+  const metaRow = document.getElementById("modalMetaRow");
+  if (metaRow) {
+    metaRow.innerHTML = `
+      <span class="meta-tag rating-tag">⭐ 9.${(movie.id % 9) + 1}</span>
+      <span class="meta-tag quality-tag">4K Ultra HD</span>
+      <span class="meta-tag code-tag" style="background:var(--gold-soft);color:var(--gold);border:1px solid var(--glass-border-gold);font-weight:700">🔑 Kod: ${movie.code}</span>
+    `;
+  }
   const catSvg = CATEGORY_SVG[movie.category] || CATEGORY_SVG.kino;
   els.modalPoster.innerHTML = movie.poster_file_id
     ? `<img src="/api/poster/${movie.id}" alt="" />`
@@ -469,11 +484,28 @@ els.watchBtn.addEventListener("click", async () => {
 });
 
 // ---------- Tabs & Filter ----------
+const CATEGORY_TITLE = {
+  "": "Katalog",
+  kino: "Kinolar",
+  multfilm: "Multfilmlar",
+  serial: "Seriallar",
+};
+
+function updateCategorySections() {
+  const isAll = !state.currentCategory;
+  if (els.heroShowcase) els.heroShowcase.classList.toggle("hidden", !isAll);
+  if (els.storiesSection) els.storiesSection.classList.toggle("hidden", !isAll);
+  if (els.sectionNew) els.sectionNew.classList.toggle("hidden", !isAll);
+  if (els.sectionTop) els.sectionTop.classList.toggle("hidden", !isAll);
+  if (els.gridTitle) els.gridTitle.textContent = CATEGORY_TITLE[state.currentCategory] || "Katalog";
+}
+
 els.tabs.forEach((tab) => {
   tab.addEventListener("click", () => {
     els.tabs.forEach((t) => t.classList.remove("active"));
     tab.classList.add("active");
     state.currentCategory = tab.dataset.cat;
+    updateCategorySections();
     loadHomeGrid();
   });
 });
@@ -481,6 +513,7 @@ els.tabs.forEach((tab) => {
 // ---------- Search Mode Logic ----------
 function enterSearchMode() {
   els.homeMainContent.classList.add("hidden");
+  if (els.searchSuggestionsWrapper) els.searchSuggestionsWrapper.classList.remove("hidden");
   els.searchSuggestions.classList.remove("hidden");
   els.searchCancel.classList.remove("hidden");
   if (els.searchClearBtn) els.searchClearBtn.classList.remove("hidden");
@@ -490,6 +523,7 @@ function enterSearchMode() {
 function exitSearchMode() {
   els.searchInput.value = "";
   els.searchInput.blur();
+  if (els.searchSuggestionsWrapper) els.searchSuggestionsWrapper.classList.add("hidden");
   els.searchSuggestions.classList.add("hidden");
   els.searchSuggestions.innerHTML = "";
   els.searchCancel.classList.add("hidden");
@@ -498,10 +532,31 @@ function exitSearchMode() {
   restartHeroTimer();
 }
 
+async function triggerSearch() {
+  const query = els.searchInput.value.trim();
+  if (els.searchClearBtn) els.searchClearBtn.classList.toggle("hidden", query === "");
+  if (!query) {
+    renderSuggestions([], "");
+    return;
+  }
+  els.searchSuggestions.innerHTML = `<p class="watch-status-msg">Qidirilmoqda...</p>`;
+  try {
+    const params = new URLSearchParams({ search: query });
+    if (state.searchType && state.searchType !== "all") {
+      params.set("search_type", state.searchType);
+    }
+    const res = await fetch(`/api/movies?${params.toString()}`);
+    const movies = await res.json();
+    renderSuggestions(movies, query);
+  } catch (e) {
+    els.searchSuggestions.innerHTML = `<p class="watch-status-msg">❌ Xatolik yuz berdi</p>`;
+  }
+}
+
 function renderSuggestions(movies, query) {
   els.searchSuggestions.innerHTML = "";
   if (!query) {
-    els.searchSuggestions.innerHTML = `<p class="watch-status-msg">Kino yoki serial nomini yozing...</p>`;
+    els.searchSuggestions.innerHTML = `<p class="watch-status-msg">Kino/serial nomi yoki 4-xonali kodini yozing...</p>`;
     return;
   }
   if (movies.length === 0) {
@@ -522,7 +577,7 @@ function renderSuggestions(movies, query) {
       <div class="search-item-poster">${poster}</div>
       <div class="search-item-info">
         <div class="search-item-title">${escapeHtml(movie.title)}</div>
-        <div class="search-item-meta">${meta} · 👁 ${formatViews(movie.views)}</div>
+        <div class="search-item-meta">${meta} · 👁 ${formatViews(movie.views)} · <span style="color:var(--gold);font-weight:700">🔑 ${movie.code}</span></div>
       </div>
     `;
     item.addEventListener("click", () => {
@@ -544,23 +599,19 @@ if (els.headerSearchBtn) {
 
 els.searchInput.addEventListener("input", () => {
   clearTimeout(debounceTimer);
-  const query = els.searchInput.value.trim();
-  if (els.searchClearBtn) els.searchClearBtn.classList.toggle("hidden", query === "");
-  debounceTimer = setTimeout(async () => {
-    if (!query) {
-      renderSuggestions([], "");
-      return;
-    }
-    els.searchSuggestions.innerHTML = `<p class="watch-status-msg">Qidirilmoqda...</p>`;
-    try {
-      const res = await fetch(`/api/movies?search=${encodeURIComponent(query)}`);
-      const movies = await res.json();
-      renderSuggestions(movies, query);
-    } catch (e) {
-      els.searchSuggestions.innerHTML = `<p class="watch-status-msg">❌ Xatolik yuz berdi</p>`;
-    }
-  }, 280);
+  debounceTimer = setTimeout(triggerSearch, 280);
 });
+
+if (els.searchTypeChips) {
+  els.searchTypeChips.forEach((chip) => {
+    chip.addEventListener("click", () => {
+      els.searchTypeChips.forEach((c) => c.classList.remove("active"));
+      chip.classList.add("active");
+      state.searchType = chip.dataset.type;
+      triggerSearch();
+    });
+  });
+}
 
 if (els.searchClearBtn) {
   els.searchClearBtn.addEventListener("click", () => {
@@ -623,5 +674,6 @@ els.contactAdminBtn.addEventListener("click", () => {
     state.favoriteIds = new Set(favData.ids);
   } catch (e) {}
   loadHomeCarousels();
+  updateCategorySections();
   loadHomeGrid();
 })();

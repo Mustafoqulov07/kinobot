@@ -177,3 +177,77 @@ async def episode_callback_handler(callback: CallbackQuery):
     caption = f"📺 <b>{episode['title']}</b> — {episode['episode_number']}-qism"
     await callback.message.answer_video(episode["video_file_id"], caption=caption)
     await callback.answer()
+
+
+@router.callback_query(F.data.startswith("movie:"))
+async def movie_view_callback(callback: CallbackQuery):
+    movie_id = int(callback.data.split(":")[1])
+    movie = await db.get_movie_by_id(movie_id)
+    if not movie:
+        await callback.answer("Topilmadi", show_alert=True)
+        return
+
+    if movie["is_series"]:
+        episodes = await db.get_episodes(movie["id"])
+        if not episodes:
+            await callback.answer("Bu serialga hali qismlar qo'shilmagan.", show_alert=True)
+            return
+        kb = build_episode_keyboard(episodes, movie["id"])
+        hint = "Guruhni tanlang:" if len(episodes) > EPISODE_CHUNK else "Qismni tanlang:"
+        caption = f"📺 <b>{movie['title']}</b>\n\n{movie['description'] or ''}\n\n{hint}"
+        await callback.message.answer(caption, reply_markup=kb)
+        await callback.answer()
+        return
+
+    await db.increment_views(movie["id"])
+    video_id = await db.get_movie_video(movie["id"])
+    caption = f"🎬 <b>{movie['title']}</b>\n\n{movie['description'] or ''}\n\n🔑 Kod: <b>{movie['code']}</b>"
+    await callback.message.answer_video(video_id, caption=caption)
+    await callback.answer()
+
+
+@router.message(F.text & ~F.text.startswith("/"))
+async def general_text_search_handler(message: Message):
+    text = message.text.strip()
+    if text in (BTN_ADMIN, BTN_CODES):
+        return
+
+    movies = await db.get_movies(search=text, limit=10)
+    if not movies:
+        await message.answer(
+            f"❌ <b>'{text}'</b> bo'yicha hech narsa topilmadi.\n\n"
+            "💡 Qidirish uchun kino nomini yoki 4 xonali kodini yuboring."
+        )
+        return
+
+    if len(movies) == 1:
+        movie = movies[0]
+        if movie["is_series"]:
+            episodes = await db.get_episodes(movie["id"])
+            if not episodes:
+                await message.answer("Bu serialga hali qismlar qo'shilmagan.")
+                return
+            kb = build_episode_keyboard(episodes, movie["id"])
+            hint = "Guruhni tanlang:" if len(episodes) > EPISODE_CHUNK else "Qismni tanlang:"
+            caption = f"📺 <b>{movie['title']}</b>\n\n{movie['description'] or ''}\n\n{hint}"
+            await message.answer(caption, reply_markup=kb)
+            return
+
+        await db.increment_views(movie["id"])
+        video_id = await db.get_movie_video(movie["id"])
+        caption = f"🎬 <b>{movie['title']}</b>\n\n{movie['description'] or ''}\n\n🔑 Kod: <b>{movie['code']}</b>"
+        await message.answer_video(video_id, caption=caption)
+        return
+
+    # Multiple movies found
+    lines = [f"🔍 <b>'{text}' bo'yicha topilganlar:</b>\n"]
+    inline_keyboard = []
+    for m in movies:
+        cat_emoji = CATEGORIES.get(m["category"], "🎬").split()[0]
+        extra = f" ({m['episode_count']} qism)" if m["is_series"] else ""
+        lines.append(f"{cat_emoji} <b>{m['title']}</b>{extra} — 🔑 <code>{m['code']}</code>")
+        inline_keyboard.append([InlineKeyboardButton(text=f"▶ {m['title']} ({m['code']})", callback_data=f"movie:{m['id']}")])
+
+    lines.append("\nKo'rish uchun kerakli kino tugmasini bosing:")
+    kb = InlineKeyboardMarkup(inline_keyboard=inline_keyboard)
+    await message.answer("\n".join(lines), reply_markup=kb)

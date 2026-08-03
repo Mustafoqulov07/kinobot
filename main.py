@@ -103,8 +103,8 @@ async def api_meta():
 # ---------- Kinolar ----------
 @app.get("/api/movies")
 async def api_movies(category: str | None = None, search: str | None = None,
-                      sort: str = "new", limit: int | None = None):
-    return await db.get_movies(category=category, search=search, sort=sort, limit=limit)
+                      search_type: str | None = None, sort: str = "new", limit: int | None = None):
+    return await db.get_movies(category=category, search=search, search_type=search_type, sort=sort, limit=limit)
 
 
 @app.get("/api/movie/{movie_id}")

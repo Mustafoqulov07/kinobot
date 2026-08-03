@@ -44,19 +44,26 @@
     <div class="search-section">
       <div class="search-box">
         <svg class="search-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input id="searchInput" type="text" placeholder="Kino, serial, multfilm qidirish..." autocomplete="off" />
+        <input id="searchInput" type="text" placeholder="Nomi yoki 4 xonali kodini yozing..." autocomplete="off" />
         <button id="searchClearBtn" class="search-clear-btn hidden" aria-label="Tozalash">✕</button>
       </div>
       <button id="searchCancel" class="search-cancel-btn hidden">Bekor qilish</button>
     </div>
 
     <!-- Live Search Suggestions Drawer -->
-    <div id="searchSuggestions" class="search-results-drawer hidden"></div>
+    <div id="searchSuggestionsWrapper" class="search-drawer-container hidden">
+      <div id="searchTypeBar" class="search-type-bar">
+        <button class="search-type-chip active" data-type="all">🔍 Barchasi</button>
+        <button class="search-type-chip" data-type="title">🔤 Nomi bo'yicha</button>
+        <button class="search-type-chip" data-type="code">🔑 Kodi bo'yicha</button>
+      </div>
+      <div id="searchSuggestions" class="search-results-drawer"></div>
+    </div>
 
     <div id="homeMainContent">
 
       <!-- Featured 3D Hero Slider -->
-      <div class="hero-showcase">
+      <div id="heroShowcase" class="hero-showcase">
         <div class="hero-slider" id="heroCarousel">
           <div class="hero-track" id="heroTrack"></div>
           <div class="hero-nav-bar">
@@ -68,7 +75,7 @@
       </div>
 
       <!-- Category Stories Reel -->
-      <div class="stories-section">
+      <div id="storiesSection" class="stories-section">
         <div class="stories-row" id="avatarRow"></div>
       </div>
 
@@ -95,7 +102,7 @@
       </div>
 
       <!-- Section: Yangi Qo'shilganlar -->
-      <div class="section-container">
+      <div id="sectionNew" class="section-container">
         <div class="section-header">
           <div class="section-title-wrap">
             <span class="section-indicator teal-glow"></span>
@@ -107,7 +114,7 @@
       </div>
 
       <!-- Section: Ommabop (Trending) -->
-      <div class="section-container">
+      <div id="sectionTop" class="section-container">
         <div class="section-header">
           <div class="section-title-wrap">
             <span class="section-indicator gold-glow"></span>

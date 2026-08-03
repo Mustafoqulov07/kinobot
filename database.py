@@ -214,15 +214,23 @@ async def get_episode_by_id(episode_id: int):
 
 # ---------- Umumiy ----------
 async def get_movies(category: str | None = None, search: str | None = None,
-                      sort: str = "new", limit: int | None = None):
+                      search_type: str | None = None, sort: str = "new", limit: int | None = None):
     query = MOVIE_SELECT + " WHERE 1=1"
     params = []
     if category:
         query += " AND m.category = ?"
         params.append(category)
     if search:
-        query += " AND m.title LIKE ?"
-        params.append(f"%{search}%")
+        if search_type == "code":
+            query += " AND m.code LIKE ?"
+            params.append(f"%{search}%")
+        elif search_type == "title":
+            query += " AND m.title LIKE ?"
+            params.append(f"%{search}%")
+        else:
+            query += " AND (m.title LIKE ? OR m.code LIKE ?)"
+            params.append(f"%{search}%")
+            params.append(f"%{search}%")
 
     query += " ORDER BY m.views DESC, m.id DESC" if sort == "top" else " ORDER BY m.id DESC"
 
