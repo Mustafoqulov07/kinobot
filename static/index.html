@@ -6,145 +6,256 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
-<title>KinoApp</title>
+<title>KinoApp Cinema Studio</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/static/style.css?v=100">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/style.css?v=200">
 </head>
 <body>
 
-<div class="spotlight"></div>
+<!-- Dynamic Ambient Glow Spots -->
+<div class="ambient-glow spot-1"></div>
+<div class="ambient-glow spot-2"></div>
+<div class="ambient-glow spot-3"></div>
 
-<header class="header">
-  <div class="logo">🎬 KinoApp</div>
+<!-- Top Sticky Glass Header -->
+<header class="app-header">
+  <div class="brand">
+    <span class="brand-icon">✨</span>
+    <span class="brand-name">Kino<span class="brand-accent">App</span></span>
+    <span class="brand-tag">ULTRA</span>
+  </div>
+  <div class="header-actions">
+    <button id="headerSearchBtn" class="header-icon-btn" aria-label="Qidirish">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    </button>
+  </div>
 </header>
 
-<!-- ============ BOSH SAHIFA ============ -->
-<section id="view-home" class="view">
-  <div class="search-wrap">
-    <div class="search-input-row">
-      <div class="search-input-wrapper">
-        <svg class="search-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="11" cy="11" r="8"></circle>
-          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-        </svg>
-        <input id="searchInput" type="text" placeholder="Kino, serial qidirish..." autocomplete="off" />
+<!-- Main Container -->
+<div class="app-container">
+
+  <!-- ============ BOSH SAHIFA (HOME) ============ -->
+  <section id="view-home" class="view active-view">
+
+    <!-- Search Section -->
+    <div class="search-section">
+      <div class="search-box">
+        <svg class="search-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input id="searchInput" type="text" placeholder="Kino, serial, multfilm qidirish..." autocomplete="off" />
+        <button id="searchClearBtn" class="search-clear-btn hidden" aria-label="Tozalash">✕</button>
       </div>
-      <button id="searchCancel" class="search-cancel hidden">Bekor qilish</button>
-    </div>
-  </div>
-
-  <div id="searchSuggestions" class="search-suggestions hidden"></div>
-
-  <div id="homeContent">
-    <div class="hero-carousel" id="heroCarousel">
-      <div class="hero-track" id="heroTrack"></div>
-      <button class="hero-nav prev" id="heroPrev">‹</button>
-      <button class="hero-nav next" id="heroNext">›</button>
-      <div class="hero-dots" id="heroDots"></div>
+      <button id="searchCancel" class="search-cancel-btn hidden">Bekor qilish</button>
     </div>
 
-    <div class="avatar-row" id="avatarRow"></div>
+    <!-- Live Search Suggestions Drawer -->
+    <div id="searchSuggestions" class="search-results-drawer hidden"></div>
 
-    <div class="section-block">
-      <h3 class="section-title accent-teal">Yangi qo'shilganlar</h3>
-      <div id="newCarousel" class="carousel"></div>
-    </div>
+    <div id="homeMainContent">
 
-    <div class="section-block">
-      <h3 class="section-title accent-gold">Ommabop</h3>
-      <div id="topCarousel" class="carousel"></div>
-    </div>
-
-    <nav class="tabs">
-      <button class="tab active" data-cat="">Barchasi</button>
-      <button class="tab" data-cat="kino">🎬 Kino</button>
-      <button class="tab" data-cat="multfilm">🧸 Multfilm</button>
-      <button class="tab" data-cat="serial">📺 Serial</button>
-    </nav>
-
-    <main id="grid" class="grid"></main>
-    <div id="emptyState" class="empty-state hidden">
-      <span class="emoji">🍿</span>
-      <p>Hech narsa topilmadi</p>
-    </div>
-  </div>
-</section>
-
-<!-- ============ REYTING ============ -->
-<section id="view-rating" class="view hidden">
-  <h3 class="section-title page-title accent-gold">🔥 Eng ko'p ko'rilganlar</h3>
-  <main id="ratingGrid" class="grid"></main>
-</section>
-
-<!-- ============ SEVIMLILAR ============ -->
-<section id="view-favorites" class="view hidden">
-  <h3 class="section-title page-title accent-pink">❤️ Sevimlilar</h3>
-  <main id="favGrid" class="grid"></main>
-  <div id="favEmpty" class="empty-state hidden">
-    <span class="emoji">💔</span>
-    <p>Hali sevimlilarga hech narsa qo'shmagansiz</p>
-  </div>
-</section>
-
-<!-- ============ PROFIL ============ -->
-<section id="view-profile" class="view hidden">
-  <div class="profile-card">
-    <div id="profileAvatar" class="profile-avatar">🙂</div>
-    <div id="profileName" class="profile-name">Foydalanuvchi</div>
-    <div class="profile-stats">
-      <div class="stat">
-        <span id="statHistory" class="stat-num">0</span>
-        <span class="stat-label">tomosha qilingan</span>
+      <!-- Featured 3D Hero Slider -->
+      <div class="hero-showcase">
+        <div class="hero-slider" id="heroCarousel">
+          <div class="hero-track" id="heroTrack"></div>
+          <div class="hero-nav-bar">
+            <button class="hero-arrow prev" id="heroPrev">‹</button>
+            <div class="hero-pagination" id="heroDots"></div>
+            <button class="hero-arrow next" id="heroNext">›</button>
+          </div>
+        </div>
       </div>
-      <div class="stat">
-        <span id="statFav" class="stat-num">0</span>
-        <span class="stat-label">sevimli</span>
+
+      <!-- Category Stories Reel -->
+      <div class="stories-section">
+        <div class="stories-row" id="avatarRow"></div>
+      </div>
+
+      <!-- Quick Filter Tabs -->
+      <div class="tabs-container">
+        <div class="tabs-scroll" id="categoryTabs">
+          <button class="tab-chip active" data-cat="">Barchasi</button>
+          <button class="tab-chip" data-cat="kino">🎬 Kinolar</button>
+          <button class="tab-chip" data-cat="multfilm">🧸 Multfilmlar</button>
+          <button class="tab-chip" data-cat="serial">📺 Seriallar</button>
+        </div>
+      </div>
+
+      <!-- Section: Yangi Qo'shilganlar -->
+      <div class="section-container">
+        <div class="section-header">
+          <div class="section-title-wrap">
+            <span class="section-indicator teal-glow"></span>
+            <h3 class="section-title">Yangi qo'shilganlar</h3>
+          </div>
+          <span class="section-badge">YANGI</span>
+        </div>
+        <div id="newCarousel" class="horizontal-carousel"></div>
+      </div>
+
+      <!-- Section: Ommabop (Trending) -->
+      <div class="section-container">
+        <div class="section-header">
+          <div class="section-title-wrap">
+            <span class="section-indicator gold-glow"></span>
+            <h3 class="section-title">Ommabop kinolar</h3>
+          </div>
+          <span class="section-badge gold">TOP 10</span>
+        </div>
+        <div id="topCarousel" class="horizontal-carousel"></div>
+      </div>
+
+      <!-- Main Movie Grid -->
+      <div class="section-container grid-section">
+        <div class="section-header">
+          <div class="section-title-wrap">
+            <span class="section-indicator purple-glow"></span>
+            <h3 class="section-title" id="gridTitle">Katalog</h3>
+          </div>
+        </div>
+        <main id="grid" class="main-movie-grid"></main>
+        <div id="emptyState" class="empty-state-card hidden">
+          <div class="empty-icon">🍿</div>
+          <h4>Hech narsa topilmadi</h4>
+          <p>Boshqa so'z bilan qidirib ko'ring yoki kategoriyani o'zgartiring.</p>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============ REYTING (TOP RATED & MOST WATCHED) ============ -->
+  <section id="view-rating" class="view hidden">
+    <div class="view-header-banner">
+      <div class="view-header-title">
+        <span class="view-emoji">🔥</span>
+        <h2>Eng ko'p ko'rilganlar</h2>
+      </div>
+      <p class="view-header-sub">Foydalanuvchilar orasida eng mashhur kinolar reytingi</p>
+    </div>
+    <main id="ratingGrid" class="main-movie-grid ranking-grid"></main>
+  </section>
+
+  <!-- ============ SEVIMLILAR (FAVORITES) ============ -->
+  <section id="view-favorites" class="view hidden">
+    <div class="view-header-banner pink-theme">
+      <div class="view-header-title">
+        <span class="view-emoji">❤️</span>
+        <h2>Sevimlilar</h2>
+      </div>
+      <p class="view-header-sub">Siz saqlab qo'ygan saralangan kino va seriallar</p>
+    </div>
+    <main id="favGrid" class="main-movie-grid"></main>
+    <div id="favEmpty" class="empty-state-card hidden">
+      <div class="empty-icon">💔</div>
+      <h4>Hali sevimlilaringiz yo'q</h4>
+      <p>Kino kartochkasidagi ❤️ tugmasini bosib shu yerga saqlashingiz mumkin.</p>
+    </div>
+  </section>
+
+  <!-- ============ PROFIL & TARIX ============ -->
+  <section id="view-profile" class="view hidden">
+    <div class="profile-hero-card">
+      <div class="profile-avatar-wrap">
+        <div id="profileAvatar" class="profile-avatar-inner">👤</div>
+        <span class="vip-badge">VIP</span>
+      </div>
+      <h3 id="profileName" class="profile-user-name">Foydalanuvchi</h3>
+      <div class="profile-stats-grid">
+        <div class="stat-card">
+          <span id="statHistory" class="stat-value">0</span>
+          <span class="stat-title">Tomosha qilindi</span>
+        </div>
+        <div class="stat-card">
+          <span id="statFav" class="stat-value">0</span>
+          <span class="stat-title">Sevimlilar</span>
+        </div>
       </div>
     </div>
-  </div>
 
-  <button id="contactAdminBtn" class="contact-btn">✉️ Admin bilan bog'lanish</button>
+    <button id="contactAdminBtn" class="admin-support-btn">
+      <span class="btn-icon">✉️</span>
+      <span class="btn-text">Admin bilan bog'lanish</span>
+    </button>
 
-  <h3 class="section-title page-title accent-teal">🕘 Tomosha tarixi</h3>
-  <main id="historyGrid" class="grid"></main>
-  <div id="historyEmpty" class="empty-state hidden">
-    <span class="emoji">🎞️</span>
-    <p>Hali hech narsa tomosha qilmagansiz</p>
-  </div>
-</section>
+    <div class="section-container">
+      <div class="section-header">
+        <div class="section-title-wrap">
+          <span class="section-indicator teal-glow"></span>
+          <h3 class="section-title">🕘 Tomosha tarixi</h3>
+        </div>
+      </div>
+      <main id="historyGrid" class="main-movie-grid"></main>
+      <div id="historyEmpty" class="empty-state-card hidden">
+        <div class="empty-icon">🎞️</div>
+        <h4>Tomosha tarixi bo'sh</h4>
+        <p>Tomosha qilingan kinolar avtomatik shu yerda ko'rinadi.</p>
+      </div>
+    </div>
+  </section>
 
-<!-- ============ BOTTOM NAV ============ -->
-<nav class="bottom-nav">
-  <button class="nav-btn active" data-view="home">
-    <span class="nav-icon">🏠</span><span class="nav-label">Bosh sahifa</span>
+</div>
+
+<!-- ============ FLOATING GLASS BOTTOM NAVIGATION ============ -->
+<nav class="floating-nav-bar">
+  <button class="nav-item active" data-view="home">
+    <div class="nav-icon-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    </div>
+    <span class="nav-text">Bosh sahifa</span>
   </button>
-  <button class="nav-btn" data-view="rating">
-    <span class="nav-icon">🔥</span><span class="nav-label">Reyting</span>
+  <button class="nav-item" data-view="rating">
+    <div class="nav-icon-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+    </div>
+    <span class="nav-text">Reyting</span>
   </button>
-  <button class="nav-btn" data-view="favorites">
-    <span class="nav-icon">❤️</span><span class="nav-label">Sevimli</span>
+  <button class="nav-item" data-view="favorites">
+    <div class="nav-icon-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+    </div>
+    <span class="nav-text">Sevimli</span>
   </button>
-  <button class="nav-btn" data-view="profile">
-    <span class="nav-icon">👤</span><span class="nav-label">Profil</span>
+  <button class="nav-item" data-view="profile">
+    <div class="nav-icon-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    </div>
+    <span class="nav-text">Profil</span>
   </button>
 </nav>
 
-<!-- ============ DETAIL MODAL ============ -->
-<div id="modalOverlay" class="modal-overlay">
-  <div class="modal">
-    <button id="modalClose" class="modal-close">✕</button>
-    <button id="modalFav" class="modal-fav">🤍</button>
-    <div id="modalPoster" class="modal-poster"></div>
-    <h2 id="modalTitle" class="modal-title"></h2>
-    <p id="modalDesc" class="modal-desc"></p>
-    <button id="watchBtn" class="watch-btn">▶️ Tomosha qilish</button>
-    <div id="episodeList" class="episode-list hidden"></div>
-    <p id="watchStatus" class="watch-status"></p>
+<!-- ============ ULTRAGLASS DETAIL MODAL DRAWER ============ -->
+<div id="modalOverlay" class="modal-backdrop">
+  <div class="modal-drawer">
+    <div class="modal-drag-handle"></div>
+    <button id="modalClose" class="modal-icon-btn close-btn" aria-label="Yopish">✕</button>
+    <button id="modalFav" class="modal-icon-btn fav-btn" aria-label="Sevimli">🤍</button>
+    
+    <div class="modal-media-header">
+      <div id="modalPoster" class="modal-poster-box"></div>
+    </div>
+
+    <div class="modal-body-content">
+      <h2 id="modalTitle" class="modal-movie-title"></h2>
+      <div class="modal-tags-row" id="modalMetaRow">
+        <span class="meta-tag rating-tag">⭐ 9.4</span>
+        <span class="meta-tag quality-tag">4K Ultra HD</span>
+        <span class="meta-tag year-tag">2026</span>
+      </div>
+      <p id="modalDesc" class="modal-movie-desc"></p>
+      
+      <button id="watchBtn" class="watch-action-btn">
+        <span class="play-symbol">▶</span>
+        <span class="btn-label">Hoziroq Tomosha Qilish</span>
+      </button>
+
+      <div id="episodeList" class="episode-grid-container hidden"></div>
+      <p id="watchStatus" class="watch-status-msg"></p>
+    </div>
   </div>
 </div>
 
-<script src="/static/app.js?v=100"></script>
+<script src="/static/app.js?v=200"></script>
 </body>
 </html>

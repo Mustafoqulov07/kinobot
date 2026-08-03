@@ -2,8 +2,8 @@ const tg = window.Telegram.WebApp;
 tg.ready();
 tg.expand();
 try {
-  tg.setHeaderColor("#0a0a10");
-  tg.setBackgroundColor("#0a0a10");
+  tg.setHeaderColor("#06070a");
+  tg.setBackgroundColor("#06070a");
 } catch (e) {}
 
 const CATEGORY_EMOJI = { kino: "🎬", multfilm: "🧸", serial: "📺" };
@@ -11,10 +11,12 @@ const CATEGORY_LABEL = { kino: "Kino", multfilm: "Multfilm", serial: "Serial" };
 
 const els = {
   searchInput: document.getElementById("searchInput"),
+  searchClearBtn: document.getElementById("searchClearBtn"),
   searchCancel: document.getElementById("searchCancel"),
+  headerSearchBtn: document.getElementById("headerSearchBtn"),
   searchSuggestions: document.getElementById("searchSuggestions"),
-  homeContent: document.getElementById("homeContent"),
-  tabs: document.querySelectorAll(".tab"),
+  homeMainContent: document.getElementById("homeMainContent"),
+  tabs: document.querySelectorAll(".tab-chip"),
   grid: document.getElementById("grid"),
   emptyState: document.getElementById("emptyState"),
   newCarousel: document.getElementById("newCarousel"),
@@ -34,7 +36,7 @@ const els = {
   statHistory: document.getElementById("statHistory"),
   statFav: document.getElementById("statFav"),
   contactAdminBtn: document.getElementById("contactAdminBtn"),
-  navBtns: document.querySelectorAll(".nav-btn"),
+  navBtns: document.querySelectorAll(".nav-item"),
   views: document.querySelectorAll(".view"),
   modalOverlay: document.getElementById("modalOverlay"),
   modalClose: document.getElementById("modalClose"),
@@ -58,11 +60,18 @@ let state = {
 
 let debounceTimer = null;
 
-// ---------- helpers ----------
+// ---------- Helpers ----------
 function escapeHtml(str) {
   const div = document.createElement("div");
   div.textContent = str || "";
   return div.innerHTML;
+}
+
+function formatViews(num) {
+  if (!num) return "0";
+  if (num >= 1000000) return (num / 1000000).toFixed(1) + "M";
+  if (num >= 1000) return (num / 1000).toFixed(1) + "k";
+  return num;
 }
 
 async function postJSON(url, data) {
@@ -78,63 +87,61 @@ async function postJSON(url, data) {
   return res.json();
 }
 
-// ---------- helpers ----------
-function formatViews(num) {
-  if (!num) return "0";
-  if (num >= 1000000) return (num / 1000000).toFixed(1) + "M";
-  if (num >= 1000) return (num / 1000).toFixed(1) + "k";
-  return num;
-}
-
-// ---------- card building ----------
-function buildCard(movie, index = 0) {
+// ---------- Movie Card Builder ----------
+function buildCard(movie, index = 0, rank = null) {
   const card = document.createElement("div");
-  card.className = "card";
-  card.style.animationDelay = `${Math.min(index, 10) * 40}ms`;
+  card.className = "movie-card";
+  card.style.animationDelay = `${Math.min(index, 10) * 45}ms`;
 
   const isFav = state.favoriteIds.has(movie.id);
   const posterInner = movie.poster_file_id
-    ? `<img class="poster-img" src="/api/poster/${movie.id}" loading="lazy" />`
-    : `<div class="poster-fallback">${CATEGORY_EMOJI[movie.category] || "🎬"}</div>`;
+    ? `<img class="poster-image" src="/api/poster/${movie.id}" loading="lazy" alt="${escapeHtml(movie.title)}" />`
+    : `<div class="poster-fallback-emoji">${CATEGORY_EMOJI[movie.category] || "🎬"}</div>`;
 
   const badgeText = movie.is_series && movie.episode_count > 0
     ? `📺 ${movie.episode_count} qism`
     : `${CATEGORY_EMOJI[movie.category] || ""} ${CATEGORY_LABEL[movie.category] || ""}`;
 
+  const rankHtml = rank ? `<div class="rank-badge">${rank}</div>` : "";
+
   card.innerHTML = `
+    ${rankHtml}
     ${posterInner}
-    <div class="card-badge">${badgeText}</div>
-    <button class="card-heart" data-id="${movie.id}">${isFav ? "❤️" : "🤍"}</button>
-    <div class="card-scrim">
-      <div class="card-title">${escapeHtml(movie.title)}</div>
-      <div class="card-meta"><span>👁 ${formatViews(movie.views)} ko'rish</span></div>
+    <div class="movie-card-badge">${badgeText}</div>
+    <button class="movie-card-fav-btn" data-id="${movie.id}">${isFav ? "❤️" : "🤍"}</button>
+    <div class="movie-card-scrim">
+      <div class="movie-card-title">${escapeHtml(movie.title)}</div>
+      <div class="movie-card-stats">
+        <span>👁 ${formatViews(movie.views)}</span>
+        <span>⭐ 9.${(movie.id % 9) + 1}</span>
+      </div>
     </div>
   `;
 
   card.addEventListener("click", (e) => {
-    if (e.target.closest(".card-heart")) return;
+    if (e.target.closest(".movie-card-fav-btn")) return;
     tg.HapticFeedback?.impactOccurred("light");
     openModal(movie);
   });
 
-  card.querySelector(".card-heart").addEventListener("click", async (e) => {
+  card.querySelector(".movie-card-fav-btn").addEventListener("click", async (e) => {
     e.stopPropagation();
-    await handleToggleFavorite(movie.id, card.querySelector(".card-heart"));
+    await handleToggleFavorite(movie.id, card.querySelector(".movie-card-fav-btn"));
   });
 
   return card;
 }
 
-function skeletonCards(container, count, small = false) {
+function skeletonCards(container, count) {
   container.innerHTML = "";
   for (let i = 0; i < count; i++) {
     const s = document.createElement("div");
-    s.className = small ? "skeleton-card-sm" : "skeleton-card";
+    s.className = "skeleton-box";
     container.appendChild(s);
   }
 }
 
-// ---------- favorite toggle ----------
+// ---------- Favorite Toggle ----------
 async function handleToggleFavorite(movieId, btnEl) {
   try {
     const result = await postJSON(`/api/favorite/${movieId}`, { initData: tg.initData });
@@ -155,7 +162,7 @@ async function handleToggleFavorite(movieId, btnEl) {
   }
 }
 
-// ---------- Hero carousel ----------
+// ---------- 3D Hero Slider Showcase ----------
 let heroTimer = null;
 let heroIndex = 0;
 let heroMovies = [];
@@ -167,23 +174,23 @@ function renderHero(movies) {
 
   heroMovies.forEach((movie, i) => {
     const slide = document.createElement("div");
-    slide.className = "hero-slide";
+    slide.className = "hero-card-slide";
     if (movie.poster_file_id) {
       slide.style.backgroundImage = `url(/api/poster/${movie.id})`;
     }
-    const badge = movie.is_series ? "SERIAL" : (CATEGORY_LABEL[movie.category] || "KINO").toUpperCase();
+    const badge = movie.is_series ? "SERIALLAR" : (CATEGORY_LABEL[movie.category] || "KINO").toUpperCase();
     slide.innerHTML = `
-      <div class="hero-play">▶</div>
-      <div class="hero-slide-info">
-        <span class="hero-badge">${badge}</span>
-        <div class="hero-slide-title">${escapeHtml(movie.title)}</div>
+      <div class="hero-play-circle">▶</div>
+      <div class="hero-content">
+        <span class="hero-badge-pill">🔥 TOP SHOW · ${badge}</span>
+        <div class="hero-movie-name">${escapeHtml(movie.title)}</div>
       </div>
     `;
     slide.addEventListener("click", () => openModal(movie));
     els.heroTrack.appendChild(slide);
 
     const dot = document.createElement("div");
-    dot.className = "hero-dot" + (i === 0 ? " active" : "");
+    dot.className = "hero-dot-item" + (i === 0 ? " active" : "");
     els.heroDots.appendChild(dot);
   });
 
@@ -201,7 +208,7 @@ function goToHeroSlide(index) {
 function restartHeroTimer() {
   clearInterval(heroTimer);
   if (heroMovies.length <= 1) return;
-  heroTimer = setInterval(() => goToHeroSlide(heroIndex + 1), 4500);
+  heroTimer = setInterval(() => goToHeroSlide(heroIndex + 1), 4800);
 }
 
 els.heroPrev.addEventListener("click", () => { goToHeroSlide(heroIndex - 1); restartHeroTimer(); });
@@ -216,28 +223,28 @@ els.heroTrack.addEventListener("scroll", () => {
   }, 100);
 });
 
-// ---------- Avatar row ----------
+// ---------- Stories Reel ----------
 function renderAvatarRow(movies) {
   els.avatarRow.innerHTML = "";
   movies.slice(0, 12).forEach((movie) => {
     const item = document.createElement("div");
-    item.className = "avatar-item";
+    item.className = "story-item";
     const inner = movie.poster_file_id
-      ? `<img src="/api/poster/${movie.id}" loading="lazy" />`
+      ? `<img src="/api/poster/${movie.id}" loading="lazy" alt="" />`
       : (CATEGORY_EMOJI[movie.category] || "🎬");
     item.innerHTML = `
-      <div class="avatar-ring"><div class="avatar-inner">${inner}</div></div>
-      <div class="avatar-label">${escapeHtml(movie.title)}</div>
+      <div class="story-ring"><div class="story-avatar">${inner}</div></div>
+      <div class="story-title">${escapeHtml(movie.title)}</div>
     `;
     item.addEventListener("click", () => openModal(movie));
     els.avatarRow.appendChild(item);
   });
 }
 
-// ---------- Bosh sahifa ----------
+// ---------- Home Views Loader ----------
 async function loadHomeCarousels() {
-  skeletonCards(els.newCarousel, 5, true);
-  skeletonCards(els.topCarousel, 5, true);
+  skeletonCards(els.newCarousel, 5);
+  skeletonCards(els.topCarousel, 5);
 
   const [newMovies, topMovies] = await Promise.all([
     fetch("/api/movies?sort=new&limit=10").then((r) => r.json()),
@@ -270,15 +277,18 @@ async function loadHomeGrid() {
   movies.forEach((m, i) => els.grid.appendChild(buildCard(m, i)));
 }
 
-// ---------- Reyting ----------
+// ---------- Rating Page ----------
 async function loadRating() {
   skeletonCards(els.ratingGrid, 8);
   const movies = await fetch("/api/movies?sort=top&limit=30").then((r) => r.json());
   els.ratingGrid.innerHTML = "";
-  movies.forEach((m, i) => els.ratingGrid.appendChild(buildCard(m, i)));
+  movies.forEach((m, i) => {
+    const rank = i + 1;
+    els.ratingGrid.appendChild(buildCard(m, i, rank));
+  });
 }
 
-// ---------- Sevimlilar ----------
+// ---------- Favorites Page ----------
 async function loadFavorites() {
   skeletonCards(els.favGrid, 4);
   els.favEmpty.classList.add("hidden");
@@ -294,13 +304,13 @@ async function loadFavorites() {
   }
 }
 
-// ---------- Profil ----------
+// ---------- Profile & History Page ----------
 async function loadProfile() {
   const u = tg.initDataUnsafe?.user;
   if (u) {
     const name = [u.first_name, u.last_name].filter(Boolean).join(" ") || u.username || "Foydalanuvchi";
     els.profileName.textContent = name;
-    els.profileAvatar.textContent = (u.first_name || "🙂").slice(0, 1).toUpperCase();
+    els.profileAvatar.textContent = (u.first_name || "👤").slice(0, 1).toUpperCase();
   }
 
   skeletonCards(els.historyGrid, 4);
@@ -340,7 +350,7 @@ function renderEpisodeStage(episodes, rangeIndex) {
       const end = episodes[endIdx].episode_number;
       const btn = document.createElement("button");
       btn.className = "episode-btn episode-range";
-      btn.textContent = `${start}-${end}`;
+      btn.textContent = `${start}-${end} qismlar`;
       btn.addEventListener("click", () => renderEpisodeStage(episodes, i));
       els.episodeList.appendChild(btn);
     }
@@ -365,13 +375,13 @@ function renderEpisodeStage(episodes, rangeIndex) {
   });
 }
 
-// ---------- Modal ----------
+// ---------- Ultra Glass Detail Modal ----------
 async function openModal(movie) {
   state.currentMovie = movie;
   els.modalTitle.textContent = movie.title;
   els.modalDesc.textContent = movie.description || "";
   els.modalPoster.innerHTML = movie.poster_file_id
-    ? `<img src="/api/poster/${movie.id}" />`
+    ? `<img src="/api/poster/${movie.id}" alt="" />`
     : (CATEGORY_EMOJI[movie.category] || "🎬");
   els.modalFav.textContent = state.favoriteIds.has(movie.id) ? "❤️" : "🤍";
   els.watchStatus.textContent = "";
@@ -380,20 +390,20 @@ async function openModal(movie) {
   if (movie.is_series) {
     els.watchBtn.classList.add("hidden");
     els.episodeList.classList.remove("hidden");
-    els.episodeList.innerHTML = `<p class="watch-status">Yuklanmoqda...</p>`;
+    els.episodeList.innerHTML = `<p class="watch-status-msg">Qismlar yuklanmoqda...</p>`;
     try {
       const res = await fetch(`/api/episodes/${movie.id}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const episodes = await res.json();
 
       if (episodes.length === 0) {
-        els.episodeList.innerHTML = `<p class="watch-status">Hali qismlar qo'shilmagan</p>`;
+        els.episodeList.innerHTML = `<p class="watch-status-msg">Hali qismlar qo'shilmagan</p>`;
         return;
       }
       renderEpisodeStage(episodes, null);
     } catch (e) {
       console.error("Qismlarni yuklashda xato:", e);
-      els.episodeList.innerHTML = `<p class="watch-status">❌ Qismlarni yuklab bo'lmadi: ${e.message}<br><button id="retryEpisodes" class="episode-btn" style="margin-top:8px;width:100%">🔄 Qayta urinish</button></p>`;
+      els.episodeList.innerHTML = `<p class="watch-status-msg">❌ Qismlarni yuklab bo'lmadi: ${e.message}<br><button id="retryEpisodes" class="episode-btn" style="margin-top:8px;width:100%">🔄 Qayta urinish</button></p>`;
       const retryBtn = document.getElementById("retryEpisodes");
       if (retryBtn) retryBtn.addEventListener("click", () => openModal(movie));
     }
@@ -401,7 +411,7 @@ async function openModal(movie) {
     els.watchBtn.classList.remove("hidden");
     els.episodeList.classList.add("hidden");
     els.watchBtn.disabled = false;
-    els.watchBtn.textContent = "▶️ Tomosha qilish";
+    els.watchBtn.innerHTML = `<span class="play-symbol">▶</span><span class="btn-label">Hoziroq Tomosha Qilish</span>`;
   }
 }
 
@@ -437,21 +447,21 @@ els.modalFav.addEventListener("click", async () => {
 els.watchBtn.addEventListener("click", async () => {
   if (!state.currentMovie) return;
   els.watchBtn.disabled = true;
-  els.watchBtn.textContent = "Yuborilmoqda...";
+  els.watchBtn.innerHTML = `<span class="btn-label">Yuborilmoqda...</span>`;
 
   try {
     await postJSON(`/api/watch/${state.currentMovie.id}`, { initData: tg.initData });
     els.watchStatus.textContent = "✅ Video Telegram chatingizga yuborildi!";
-    els.watchBtn.textContent = "✅ Yuborildi";
+    els.watchBtn.innerHTML = `<span class="btn-label">✅ Yuborildi</span>`;
     tg.HapticFeedback?.notificationOccurred("success");
   } catch (e) {
     els.watchStatus.textContent = `❌ Xatolik: ${e.message}`;
     els.watchBtn.disabled = false;
-    els.watchBtn.textContent = "▶️ Qayta urinish";
+    els.watchBtn.innerHTML = `<span class="play-symbol">▶</span><span class="btn-label">Qayta Urinish</span>`;
   }
 });
 
-// ---------- Tabs & Search (Bosh sahifa) ----------
+// ---------- Tabs & Filter ----------
 els.tabs.forEach((tab) => {
   tab.addEventListener("click", () => {
     els.tabs.forEach((t) => t.classList.remove("active"));
@@ -461,11 +471,12 @@ els.tabs.forEach((tab) => {
   });
 });
 
-// ---------- Qidiruv rejimi ----------
+// ---------- Search Mode Logic ----------
 function enterSearchMode() {
-  els.homeContent.classList.add("hidden");
+  els.homeMainContent.classList.add("hidden");
   els.searchSuggestions.classList.remove("hidden");
   els.searchCancel.classList.remove("hidden");
+  if (els.searchClearBtn) els.searchClearBtn.classList.remove("hidden");
   clearInterval(heroTimer);
 }
 
@@ -475,34 +486,35 @@ function exitSearchMode() {
   els.searchSuggestions.classList.add("hidden");
   els.searchSuggestions.innerHTML = "";
   els.searchCancel.classList.add("hidden");
-  els.homeContent.classList.remove("hidden");
+  if (els.searchClearBtn) els.searchClearBtn.classList.add("hidden");
+  els.homeMainContent.classList.remove("hidden");
   restartHeroTimer();
 }
 
 function renderSuggestions(movies, query) {
   els.searchSuggestions.innerHTML = "";
   if (!query) {
-    els.searchSuggestions.innerHTML = `<p class="watch-status">Kino yoki serial nomini yozing...</p>`;
+    els.searchSuggestions.innerHTML = `<p class="watch-status-msg">Kino yoki serial nomini yozing...</p>`;
     return;
   }
   if (movies.length === 0) {
-    els.searchSuggestions.innerHTML = `<p class="watch-status">🔍 "${escapeHtml(query)}" bo'yicha hech narsa topilmadi</p>`;
+    els.searchSuggestions.innerHTML = `<p class="watch-status-msg">🔍 "${escapeHtml(query)}" bo'yicha hech narsa topilmadi</p>`;
     return;
   }
   movies.forEach((movie) => {
     const item = document.createElement("div");
-    item.className = "search-suggestion-item";
+    item.className = "search-item-card";
     const poster = movie.poster_file_id
-      ? `<img src="/api/poster/${movie.id}" />`
+      ? `<img src="/api/poster/${movie.id}" alt="" />`
       : (CATEGORY_EMOJI[movie.category] || "🎬");
     const meta = movie.is_series && movie.episode_count > 0
       ? `📺 ${movie.episode_count} qism`
       : (CATEGORY_LABEL[movie.category] || "");
     item.innerHTML = `
-      <div class="suggestion-poster">${poster}</div>
-      <div class="suggestion-info">
-        <div class="suggestion-title">${escapeHtml(movie.title)}</div>
-        <div class="suggestion-meta">${meta} · 👁 ${movie.views}</div>
+      <div class="search-item-poster">${poster}</div>
+      <div class="search-item-info">
+        <div class="search-item-title">${escapeHtml(movie.title)}</div>
+        <div class="search-item-meta">${meta} · 👁 ${formatViews(movie.views)}</div>
       </div>
     `;
     item.addEventListener("click", () => {
@@ -515,32 +527,57 @@ function renderSuggestions(movies, query) {
 
 els.searchInput.addEventListener("focus", enterSearchMode);
 
+if (els.headerSearchBtn) {
+  els.headerSearchBtn.addEventListener("click", () => {
+    els.searchInput.focus();
+    enterSearchMode();
+  });
+}
+
 els.searchInput.addEventListener("input", () => {
   clearTimeout(debounceTimer);
   const query = els.searchInput.value.trim();
+  if (els.searchClearBtn) els.searchClearBtn.classList.toggle("hidden", query === "");
   debounceTimer = setTimeout(async () => {
     if (!query) {
       renderSuggestions([], "");
       return;
     }
-    els.searchSuggestions.innerHTML = `<p class="watch-status">Qidirilmoqda...</p>`;
+    els.searchSuggestions.innerHTML = `<p class="watch-status-msg">Qidirilmoqda...</p>`;
     try {
       const res = await fetch(`/api/movies?search=${encodeURIComponent(query)}`);
       const movies = await res.json();
       renderSuggestions(movies, query);
     } catch (e) {
-      els.searchSuggestions.innerHTML = `<p class="watch-status">❌ Xatolik yuz berdi</p>`;
+      els.searchSuggestions.innerHTML = `<p class="watch-status-msg">❌ Xatolik yuz berdi</p>`;
     }
-  }, 300);
+  }, 280);
 });
+
+if (els.searchClearBtn) {
+  els.searchClearBtn.addEventListener("click", () => {
+    els.searchInput.value = "";
+    els.searchClearBtn.classList.add("hidden");
+    renderSuggestions([], "");
+    els.searchInput.focus();
+  });
+}
 
 els.searchCancel.addEventListener("click", exitSearchMode);
 
-// ---------- Bottom nav ----------
+// ---------- View Switcher ----------
 function switchView(viewName) {
   state.currentView = viewName;
   els.navBtns.forEach((b) => b.classList.toggle("active", b.dataset.view === viewName));
-  els.views.forEach((v) => v.classList.toggle("hidden", v.id !== `view-${viewName}`));
+  els.views.forEach((v) => {
+    if (v.id === `view-${viewName}`) {
+      v.classList.remove("hidden");
+      v.classList.add("active-view");
+    } else {
+      v.classList.add("hidden");
+      v.classList.remove("active-view");
+    }
+  });
 
   if (viewName === "rating") loadRating();
   if (viewName === "favorites") loadFavorites();
@@ -554,7 +591,7 @@ els.navBtns.forEach((btn) => {
   });
 });
 
-// ---------- Admin bilan bog'lanish ----------
+// ---------- Admin Meta & Support ----------
 async function loadMeta() {
   try {
     const meta = await fetch("/api/meta").then((r) => r.json());
@@ -570,7 +607,7 @@ els.contactAdminBtn.addEventListener("click", () => {
   }
 });
 
-// ---------- Init ----------
+// ---------- Application Initialization ----------
 (async function init() {
   await loadMeta();
   try {
