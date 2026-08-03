@@ -85,9 +85,12 @@ async def require_user(init_data: str) -> dict:
 # ---------- Telegram webhook ----------
 @app.post(WEBHOOK_PATH)
 async def telegram_webhook(request: Request):
-    data = await request.json()
-    update = Update.model_validate(data)
-    await dp.feed_update(bot, update)
+    try:
+        data = await request.json()
+        update = Update.model_validate(data)
+        await dp.feed_update(bot, update)
+    except Exception as e:
+        logger.error(f"Webhook update ishlanishida xatolik: {e}", exc_info=True)
     return {"ok": True}
 
 

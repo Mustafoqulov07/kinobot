@@ -229,21 +229,27 @@ async def add_admin_handler(message: Message):
         await message.answer("Foydalanish: /addadmin <user_id yoki @username>\n\nMasalan: /addadmin 123456789 yoki /addadmin @username")
         return
     target = parts[1].strip()
-    user_info = await db.get_user_by_username_or_id(target)
-    if not user_info:
-        await message.answer("❌ Foydalanuvchi topilmadi. Foydalanuvchi avval botga /start bosgan bo'lishi kerak.")
-        return
-    target_id = user_info["user_id"]
-    if await is_admin(target_id):
-        await message.answer("ℹ️ Bu foydalanuvchi allaqachon admin.")
-        return
-    await db.add_admin(target_id, message.from_user.id)
     try:
-        await message.bot.set_my_commands(ADMIN_COMMANDS, scope=BotCommandScopeChat(chat_id=target_id))
-    except Exception:
-        pass
-    name_str = f"<b>{user_info['first_name']}</b>" if user_info.get("first_name") else f"<code>{target_id}</code>"
-    await message.answer(f"✅ {name_str} muvaffaqiyatli admin etib tayinlandi!")
+        user_info = await db.get_user_by_username_or_id(target)
+        if not user_info:
+            await message.answer("❌ Foydalanuvchi topilmadi. Foydalanuvchi avval botga /start bosgan bo'lishi kerak.")
+            return
+        target_id = user_info["user_id"]
+        if await is_admin(target_id):
+            await message.answer("ℹ️ Bu foydalanuvchi allaqachon admin.")
+            return
+        ok = await db.add_admin(target_id, message.from_user.id)
+        if not ok:
+            await message.answer("❌ Admin qo'shishda bazada xatolik yuz berdi.")
+            return
+        try:
+            await message.bot.set_my_commands(ADMIN_COMMANDS, scope=BotCommandScopeChat(chat_id=target_id))
+        except Exception:
+            pass
+        name_str = f"<b>{user_info['first_name']}</b>" if user_info.get("first_name") else f"<code>{target_id}</code>"
+        await message.answer(f"✅ {name_str} muvaffaqiyatli admin etib tayinlandi!")
+    except Exception as e:
+        await message.answer(f"❌ Xatolik yuz berdi: {e}")
 
 
 @router.message(Command("deladmin"))
@@ -256,41 +262,47 @@ async def del_admin_handler(message: Message):
         await message.answer("Foydalanish: /deladmin <user_id yoki @username>")
         return
     target = parts[1].strip()
-    user_info = await db.get_user_by_username_or_id(target)
-    if not user_info:
-        await message.answer("❌ Foydalanuvchi topilmadi.")
-        return
-    target_id = user_info["user_id"]
-    if target_id in ADMIN_IDS:
-        await message.answer("❌ Asosiy (config.py dagi) adminni o'chirib bo'lmaydi.")
-        return
-    ok = await db.remove_admin(target_id)
-    if ok:
-        try:
-            await message.bot.set_my_commands(USER_COMMANDS, scope=BotCommandScopeChat(chat_id=target_id))
-        except Exception:
-            pass
-        await message.answer("✅ Adminlik huquqi olib tashlandi.")
-    else:
-        await message.answer("❌ Bu foydalanuvchi bazadagi adminlar ro'yxatida yo'q.")
+    try:
+        user_info = await db.get_user_by_username_or_id(target)
+        if not user_info:
+            await message.answer("❌ Foydalanuvchi topilmadi.")
+            return
+        target_id = user_info["user_id"]
+        if target_id in ADMIN_IDS:
+            await message.answer("❌ Asosiy (config.py dagi) adminni o'chirib bo'lmaydi.")
+            return
+        ok = await db.remove_admin(target_id)
+        if ok:
+            try:
+                await message.bot.set_my_commands(USER_COMMANDS, scope=BotCommandScopeChat(chat_id=target_id))
+            except Exception:
+                pass
+            await message.answer("✅ Adminlik huquqi olib tashlandi.")
+        else:
+            await message.answer("❌ Bu foydalanuvchi bazadagi adminlar ro'yxatida yo'q.")
+    except Exception as e:
+        await message.answer(f"❌ Xatolik yuz berdi: {e}")
 
 
 @router.message(Command("admins"))
 async def list_admins_handler(message: Message):
     if not await is_admin(message.from_user.id):
         return
-    db_admins = await db.get_db_admins()
-    lines = ["👑 <b>Bot adminlari ro'yxati</b>\n"]
-    lines.append("📌 <b>Asosiy adminlar (env/config):</b>")
-    for aid in ADMIN_IDS:
-        lines.append(f"• <code>{aid}</code>")
-    lines.append("\n⭐ <b>Qo'shilgan adminlar (DB):</b>")
-    if not db_admins:
-        lines.append("<i>Hozircha qo'shimcha adminlar yo'q.</i>")
-    else:
-        for a in db_admins:
-            name = a["first_name"] or "Noma'lum"
-            uname = f" (@{a['username']})" if a["username"] else ""
-            lines.append(f"• {name}{uname} — <code>{a['user_id']}</code>")
-    await message.answer("\n".join(lines))
+    try:
+        db_admins = await db.get_db_admins()
+        lines = ["👑 <b>Bot adminlari ro'yxati</b>\n"]
+        lines.append("📌 <b>Asosiy adminlar (env/config):</b>")
+        for aid in ADMIN_IDS:
+            lines.append(f"• <code>{aid}</code>")
+        lines.append("\n⭐ <b>Qo'shilgan adminlar (DB):</b>")
+        if not db_admins:
+            lines.append("<i>Hozircha qo'shimcha adminlar yo'q.</i>")
+        else:
+            for a in db_admins:
+                name = a["first_name"] or "Noma'lum"
+                uname = f" (@{a['username']})" if a["username"] else ""
+                lines.append(f"• {name}{uname} — <code>{a['user_id']}</code>")
+        await message.answer("\n".join(lines))
+    except Exception as e:
+        await message.answer(f"❌ Xatolik yuz berdi: {e}")
 

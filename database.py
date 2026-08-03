@@ -371,58 +371,84 @@ async def get_stats() -> dict:
 
 # ---------- Adminlar boshqaruvi ----------
 async def add_admin(user_id: int, added_by: int) -> bool:
-    await _execute(
-        "INSERT INTO admins (user_id, added_by) VALUES (?, ?) ON CONFLICT(user_id) DO NOTHING",
-        (user_id, added_by),
-    )
-    return True
+    try:
+        await _execute(
+            """CREATE TABLE IF NOT EXISTS admins (
+                user_id INTEGER PRIMARY KEY,
+                added_by INTEGER,
+                added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )"""
+        )
+        await _execute(
+            "INSERT OR IGNORE INTO admins (user_id, added_by) VALUES (?, ?)",
+            (user_id, added_by),
+        )
+        return True
+    except Exception as e:
+        print(f"add_admin xatosi: {e}")
+        return False
 
 
 async def remove_admin(user_id: int) -> bool:
-    rows = await _execute("SELECT 1 FROM admins WHERE user_id = ?", (user_id,))
-    if not rows:
+    try:
+        rows = await _execute("SELECT 1 FROM admins WHERE user_id = ?", (user_id,))
+        if not rows:
+            return False
+        await _execute("DELETE FROM admins WHERE user_id = ?", (user_id,))
+        return True
+    except Exception as e:
+        print(f"remove_admin xatosi: {e}")
         return False
-    await _execute("DELETE FROM admins WHERE user_id = ?", (user_id,))
-    return True
 
 
 async def is_admin(user_id: int) -> bool:
-    rows = await _execute("SELECT 1 FROM admins WHERE user_id = ?", (user_id,))
-    return bool(rows)
+    try:
+        rows = await _execute("SELECT 1 FROM admins WHERE user_id = ?", (user_id,))
+        return bool(rows)
+    except Exception:
+        return False
 
 
 async def get_db_admins() -> list[dict]:
-    rows = await _execute(
-        """SELECT a.user_id, a.added_by, a.added_at, u.first_name, u.username
-           FROM admins a LEFT JOIN bot_users u ON a.user_id = u.user_id
-           ORDER BY a.added_at DESC"""
-    )
-    return [
-        {
-            "user_id": r[0],
-            "added_by": r[1],
-            "added_at": r[2],
-            "first_name": r[3],
-            "username": r[4],
-        }
-        for r in rows
-    ]
+    try:
+        rows = await _execute(
+            """SELECT a.user_id, a.added_by, a.added_at, u.first_name, u.username
+               FROM admins a LEFT JOIN bot_users u ON a.user_id = u.user_id
+               ORDER BY a.added_at DESC"""
+        )
+        return [
+            {
+                "user_id": r[0],
+                "added_by": r[1],
+                "added_at": r[2],
+                "first_name": r[3],
+                "username": r[4],
+            }
+            for r in rows
+        ]
+    except Exception as e:
+        print(f"get_db_admins xatosi: {e}")
+        return []
 
 
 async def get_user_by_username_or_id(query: str) -> dict | None:
-    query_str = query.strip().lstrip("@")
-    if query_str.isdigit():
-        uid = int(query_str)
-        rows = await _execute("SELECT user_id, first_name, username FROM bot_users WHERE user_id = ?", (uid,))
-        if rows:
-            return {"user_id": rows[0][0], "first_name": rows[0][1], "username": rows[0][2]}
-        return {"user_id": uid, "first_name": None, "username": None}
-    else:
-        rows = await _execute(
-            "SELECT user_id, first_name, username FROM bot_users WHERE LOWER(username) = LOWER(?)",
-            (query_str,),
-        )
-        if rows:
-            return {"user_id": rows[0][0], "first_name": rows[0][1], "username": rows[0][2]}
+    try:
+        query_str = query.strip().lstrip("@")
+        if query_str.isdigit():
+            uid = int(query_str)
+            rows = await _execute("SELECT user_id, first_name, username FROM bot_users WHERE user_id = ?", (uid,))
+            if rows:
+                return {"user_id": rows[0][0], "first_name": rows[0][1], "username": rows[0][2]}
+            return {"user_id": uid, "first_name": None, "username": None}
+        else:
+            rows = await _execute(
+                "SELECT user_id, first_name, username FROM bot_users WHERE LOWER(username) = LOWER(?)",
+                (query_str,),
+            )
+            if rows:
+                return {"user_id": rows[0][0], "first_name": rows[0][1], "username": rows[0][2]}
+            return None
+    except Exception as e:
+        print(f"get_user_by_username_or_id xatosi: {e}")
         return None
 
