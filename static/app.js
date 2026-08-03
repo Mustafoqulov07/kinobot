@@ -6,7 +6,11 @@ try {
   tg.setBackgroundColor("#06070a");
 } catch (e) {}
 
-const CATEGORY_EMOJI = { kino: "🎬", multfilm: "🧸", serial: "📺" };
+const CATEGORY_SVG = {
+  kino: `<svg class="badge-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="17" x2="22" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/></svg>`,
+  serial: `<svg class="badge-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="15" rx="2"/><polyline points="17 2 12 7 7 2"/></svg>`,
+  multfilm: `<svg class="badge-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.4 7.4H22l-6 4.6 2.3 7-6.3-4.6-6.3 4.6 2.3-7-6-4.6h7.6z"/></svg>`,
+};
 const CATEGORY_LABEL = { kino: "Kino", multfilm: "Multfilm", serial: "Serial" };
 
 const els = {
@@ -93,14 +97,14 @@ function buildCard(movie, index = 0, rank = null) {
   card.className = "movie-card";
   card.style.animationDelay = `${Math.min(index, 10) * 45}ms`;
 
-  const isFav = state.favoriteIds.has(movie.id);
+  const catSvg = CATEGORY_SVG[movie.category] || CATEGORY_SVG.kino;
   const posterInner = movie.poster_file_id
     ? `<img class="poster-image" src="/api/poster/${movie.id}" loading="lazy" alt="${escapeHtml(movie.title)}" />`
-    : `<div class="poster-fallback-emoji">${CATEGORY_EMOJI[movie.category] || "🎬"}</div>`;
+    : `<div class="poster-fallback-vector">${catSvg}</div>`;
 
   const badgeText = movie.is_series && movie.episode_count > 0
-    ? `📺 ${movie.episode_count} qism`
-    : `${CATEGORY_EMOJI[movie.category] || ""} ${CATEGORY_LABEL[movie.category] || ""}`;
+    ? `${catSvg} <span>${movie.episode_count} qism</span>`
+    : `${catSvg} <span>${CATEGORY_LABEL[movie.category] || ""}</span>`;
 
   const rankHtml = rank ? `<div class="rank-badge">${rank}</div>` : "";
 
@@ -229,9 +233,10 @@ function renderAvatarRow(movies) {
   movies.slice(0, 12).forEach((movie) => {
     const item = document.createElement("div");
     item.className = "story-item";
+    const catSvg = CATEGORY_SVG[movie.category] || CATEGORY_SVG.kino;
     const inner = movie.poster_file_id
       ? `<img src="/api/poster/${movie.id}" loading="lazy" alt="" />`
-      : (CATEGORY_EMOJI[movie.category] || "🎬");
+      : `<div class="poster-fallback-vector" style="font-size:18px">${catSvg}</div>`;
     item.innerHTML = `
       <div class="story-ring"><div class="story-avatar">${inner}</div></div>
       <div class="story-title">${escapeHtml(movie.title)}</div>
@@ -380,9 +385,10 @@ async function openModal(movie) {
   state.currentMovie = movie;
   els.modalTitle.textContent = movie.title;
   els.modalDesc.textContent = movie.description || "";
+  const catSvg = CATEGORY_SVG[movie.category] || CATEGORY_SVG.kino;
   els.modalPoster.innerHTML = movie.poster_file_id
     ? `<img src="/api/poster/${movie.id}" alt="" />`
-    : (CATEGORY_EMOJI[movie.category] || "🎬");
+    : `<div class="poster-fallback-vector">${catSvg}</div>`;
   els.modalFav.textContent = state.favoriteIds.has(movie.id) ? "❤️" : "🤍";
   els.watchStatus.textContent = "";
   els.modalOverlay.classList.add("open");
@@ -504,11 +510,12 @@ function renderSuggestions(movies, query) {
   movies.forEach((movie) => {
     const item = document.createElement("div");
     item.className = "search-item-card";
+    const catSvg = CATEGORY_SVG[movie.category] || CATEGORY_SVG.kino;
     const poster = movie.poster_file_id
       ? `<img src="/api/poster/${movie.id}" alt="" />`
-      : (CATEGORY_EMOJI[movie.category] || "🎬");
+      : `<div class="poster-fallback-vector" style="font-size:16px">${catSvg}</div>`;
     const meta = movie.is_series && movie.episode_count > 0
-      ? `📺 ${movie.episode_count} qism`
+      ? `${movie.episode_count} qism`
       : (CATEGORY_LABEL[movie.category] || "");
     item.innerHTML = `
       <div class="search-item-poster">${poster}</div>

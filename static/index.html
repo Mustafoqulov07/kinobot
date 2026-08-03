@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/static/style.css?v=200">
+<link rel="stylesheet" href="/static/style.css?v=400">
 </head>
 <body>
 
@@ -75,10 +75,22 @@
       <!-- Quick Filter Tabs -->
       <div class="tabs-container">
         <div class="tabs-scroll" id="categoryTabs">
-          <button class="tab-chip active" data-cat="">Barchasi</button>
-          <button class="tab-chip" data-cat="kino">🎬 Kinolar</button>
-          <button class="tab-chip" data-cat="multfilm">🧸 Multfilmlar</button>
-          <button class="tab-chip" data-cat="serial">📺 Seriallar</button>
+          <button class="tab-chip active" data-cat="">
+            <svg class="cat-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+            <span>Barchasi</span>
+          </button>
+          <button class="tab-chip" data-cat="kino">
+            <svg class="cat-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="17" x2="22" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/></svg>
+            <span>Kinolar</span>
+          </button>
+          <button class="tab-chip" data-cat="multfilm">
+            <svg class="cat-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.4 7.4H22l-6 4.6 2.3 7-6.3-4.6-6.3 4.6 2.3-7-6-4.6h7.6z"/></svg>
+            <span>Multfilmlar</span>
+          </button>
+          <button class="tab-chip" data-cat="serial">
+            <svg class="cat-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="15" rx="2"/><polyline points="17 2 12 7 7 2"/></svg>
+            <span>Seriallar</span>
+          </button>
         </div>
       </div>
 
@@ -256,6 +268,6 @@
   </div>
 </div>
 
-<script src="/static/app.js?v=200"></script>
+<script src="/static/app.js?v=400"></script>
 </body>
 </html>

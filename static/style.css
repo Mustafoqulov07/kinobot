@@ -489,9 +489,21 @@ body {
 }
 .tabs-scroll::-webkit-scrollbar { display: none; }
 
+.cat-svg {
+  width: 17px;
+  height: 17px;
+  display: inline-block;
+  vertical-align: middle;
+  stroke: currentColor;
+  flex: none;
+}
+
 .tab-chip {
   flex: none;
-  padding: 10px 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 18px;
   border-radius: var(--radius-full);
   border: 1px solid var(--glass-border);
   background: var(--surface);
@@ -512,6 +524,35 @@ body {
   color: #120b00;
   border-color: var(--gold);
   box-shadow: 0 4px 22px var(--gold-glow);
+}
+
+.movie-card-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.badge-icon-svg {
+  width: 13px;
+  height: 13px;
+  stroke: currentColor;
+  flex: none;
+}
+
+.poster-fallback-vector {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(145deg, rgba(255,184,0,0.12), rgba(0,242,254,0.08));
+  color: var(--gold);
+}
+.poster-fallback-vector svg {
+  width: 48px;
+  height: 48px;
+  stroke: var(--gold);
+  filter: drop-shadow(0 0 14px var(--gold-glow));
 }
 
 /* ---------- Sections & Titles ---------- */
