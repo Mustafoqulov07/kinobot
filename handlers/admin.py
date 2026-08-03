@@ -2,16 +2,18 @@ from aiogram import Router, F
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
+from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, BotCommandScopeChat
 
-from config import ADMIN_IDS, CATEGORIES
+from config import ADMIN_IDS, CATEGORIES, USER_COMMANDS, ADMIN_COMMANDS
 import database as db
 
 router = Router()
 
 
-def is_admin(user_id: int) -> bool:
-    return user_id in ADMIN_IDS
+async def is_admin(user_id: int) -> bool:
+    if user_id in ADMIN_IDS:
+        return True
+    return await db.is_admin(user_id)
 
 
 class AddMovie(StatesGroup):
@@ -33,7 +35,7 @@ def category_keyboard() -> InlineKeyboardMarkup:
 
 @router.message(Command("addmovie"))
 async def add_movie_start(message: Message, state: FSMContext):
-    if not is_admin(message.from_user.id):
+    if not await is_admin(message.from_user.id):
         return
     await state.set_state(AddMovie.title)
     await message.answer("🎬 Yangi kino/serial nomini yuboring:")
@@ -140,7 +142,7 @@ async def add_episode_done(message: Message, state: FSMContext):
 # ---------- Mavjud serialga yangi qismlar qo'shish ----------
 @router.message(Command("addepisode"))
 async def add_episode_to_existing_start(message: Message, state: FSMContext):
-    if not is_admin(message.from_user.id):
+    if not await is_admin(message.from_user.id):
         return
     parts = message.text.split(maxsplit=1)
     if len(parts) != 2:
@@ -167,7 +169,7 @@ async def add_episode_to_existing_start(message: Message, state: FSMContext):
 # ---------- Statistika ----------
 @router.message(Command("stats"))
 async def stats_handler(message: Message):
-    if not is_admin(message.from_user.id):
+    if not await is_admin(message.from_user.id):
         return
     s = await db.get_stats()
     text = (
@@ -183,7 +185,7 @@ async def stats_handler(message: Message):
 
 @router.message(Command("users"))
 async def users_handler(message: Message):
-    if not is_admin(message.from_user.id):
+    if not await is_admin(message.from_user.id):
         return
     total = await db.get_user_count()
     users = await db.get_recent_users(limit=30)
@@ -202,7 +204,7 @@ async def users_handler(message: Message):
 # ---------- O'chirish ----------
 @router.message(Command("delete"))
 async def delete_movie_handler(message: Message):
-    if not is_admin(message.from_user.id):
+    if not await is_admin(message.from_user.id):
         return
     parts = message.text.split()
     if len(parts) != 2:
@@ -210,3 +212,85 @@ async def delete_movie_handler(message: Message):
         return
     ok = await db.delete_movie(parts[1])
     await message.answer("✅ O'chirildi." if ok else "❌ Bunday kod topilmadi.")
+
+
+def is_super_admin(user_id: int) -> bool:
+    return user_id in ADMIN_IDS
+
+
+# ---------- Adminlarni boshqarish ----------
+@router.message(Command("addadmin"))
+async def add_admin_handler(message: Message):
+    if not is_super_admin(message.from_user.id):
+        await message.answer("❌ Bu komandani faqat asosiy (Super Admin) bera oladi.")
+        return
+    parts = message.text.split(maxsplit=1)
+    if len(parts) != 2:
+        await message.answer("Foydalanish: /addadmin <user_id yoki @username>\n\nMasalan: /addadmin 123456789 yoki /addadmin @username")
+        return
+    target = parts[1].strip()
+    user_info = await db.get_user_by_username_or_id(target)
+    if not user_info:
+        await message.answer("❌ Foydalanuvchi topilmadi. Foydalanuvchi avval botga /start bosgan bo'lishi kerak.")
+        return
+    target_id = user_info["user_id"]
+    if await is_admin(target_id):
+        await message.answer("ℹ️ Bu foydalanuvchi allaqachon admin.")
+        return
+    await db.add_admin(target_id, message.from_user.id)
+    try:
+        await message.bot.set_my_commands(ADMIN_COMMANDS, scope=BotCommandScopeChat(chat_id=target_id))
+    except Exception:
+        pass
+    name_str = f"<b>{user_info['first_name']}</b>" if user_info.get("first_name") else f"<code>{target_id}</code>"
+    await message.answer(f"✅ {name_str} muvaffaqiyatli admin etib tayinlandi!")
+
+
+@router.message(Command("deladmin"))
+async def del_admin_handler(message: Message):
+    if not is_super_admin(message.from_user.id):
+        await message.answer("❌ Bu komandani faqat asosiy (Super Admin) bera oladi.")
+        return
+    parts = message.text.split(maxsplit=1)
+    if len(parts) != 2:
+        await message.answer("Foydalanish: /deladmin <user_id yoki @username>")
+        return
+    target = parts[1].strip()
+    user_info = await db.get_user_by_username_or_id(target)
+    if not user_info:
+        await message.answer("❌ Foydalanuvchi topilmadi.")
+        return
+    target_id = user_info["user_id"]
+    if target_id in ADMIN_IDS:
+        await message.answer("❌ Asosiy (config.py dagi) adminni o'chirib bo'lmaydi.")
+        return
+    ok = await db.remove_admin(target_id)
+    if ok:
+        try:
+            await message.bot.set_my_commands(USER_COMMANDS, scope=BotCommandScopeChat(chat_id=target_id))
+        except Exception:
+            pass
+        await message.answer("✅ Adminlik huquqi olib tashlandi.")
+    else:
+        await message.answer("❌ Bu foydalanuvchi bazadagi adminlar ro'yxatida yo'q.")
+
+
+@router.message(Command("admins"))
+async def list_admins_handler(message: Message):
+    if not await is_admin(message.from_user.id):
+        return
+    db_admins = await db.get_db_admins()
+    lines = ["👑 <b>Bot adminlari ro'yxati</b>\n"]
+    lines.append("📌 <b>Asosiy adminlar (env/config):</b>")
+    for aid in ADMIN_IDS:
+        lines.append(f"• <code>{aid}</code>")
+    lines.append("\n⭐ <b>Qo'shilgan adminlar (DB):</b>")
+    if not db_admins:
+        lines.append("<i>Hozircha qo'shimcha adminlar yo'q.</i>")
+    else:
+        for a in db_admins:
+            name = a["first_name"] or "Noma'lum"
+            uname = f" (@{a['username']})" if a["username"] else ""
+            lines.append(f"• {name}{uname} — <code>{a['user_id']}</code>")
+    await message.answer("\n".join(lines))
+

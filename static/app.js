@@ -78,6 +78,14 @@ async function postJSON(url, data) {
   return res.json();
 }
 
+// ---------- helpers ----------
+function formatViews(num) {
+  if (!num) return "0";
+  if (num >= 1000000) return (num / 1000000).toFixed(1) + "M";
+  if (num >= 1000) return (num / 1000).toFixed(1) + "k";
+  return num;
+}
+
 // ---------- card building ----------
 function buildCard(movie, index = 0) {
   const card = document.createElement("div");
@@ -99,7 +107,7 @@ function buildCard(movie, index = 0) {
     <button class="card-heart" data-id="${movie.id}">${isFav ? "❤️" : "🤍"}</button>
     <div class="card-scrim">
       <div class="card-title">${escapeHtml(movie.title)}</div>
-      <div class="card-meta">👁 ${movie.views}</div>
+      <div class="card-meta"><span>👁 ${formatViews(movie.views)} ko'rish</span></div>
     </div>
   `;
 

@@ -19,8 +19,41 @@ ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "")
 TURSO_DATABASE_URL = os.getenv("TURSO_DATABASE_URL", "")
 TURSO_AUTH_TOKEN = os.getenv("TURSO_AUTH_TOKEN", "")
 
+from aiogram.types import BotCommand
+
 CATEGORIES = {
     "kino": "🎬 Kino",
     "multfilm": "🧸 Multfilm",
     "serial": "📺 Serial",
 }
+
+USER_COMMANDS = [
+    BotCommand(command="start", description="Botni ishga tushirish va Mini App"),
+    BotCommand(command="codes", description="🔑 Kinolar va ularning kodlari"),
+]
+
+# Oddiy adminlar uchun komandalar (Faqat kino boshqaruvi)
+ADMIN_COMMANDS = [
+    BotCommand(command="start", description="Botni ishga tushirish va Mini App"),
+    BotCommand(command="addmovie", description="🎬 Yangi kino/serial/multfilm qo'shish"),
+    BotCommand(command="addepisode", description="📺 Serialga yangi qism qo'shish"),
+    BotCommand(command="delete", description="❌ Kinoni o'chirish"),
+    BotCommand(command="stats", description="📊 Bot statistikasi"),
+    BotCommand(command="users", description="👥 Foydalanuvchilar ro'yxati"),
+    BotCommand(command="codes", description="🔑 Kinolar va ularning kodlari"),
+]
+
+# Asosiy (Super) Adminlar uchun komandalar (Barcha imkoniyatlar)
+SUPER_ADMIN_COMMANDS = [
+    BotCommand(command="start", description="Botni ishga tushirish va Mini App"),
+    BotCommand(command="addmovie", description="🎬 Yangi kino/serial/multfilm qo'shish"),
+    BotCommand(command="addepisode", description="📺 Serialga yangi qism qo'shish"),
+    BotCommand(command="delete", description="❌ Kinoni o'chirish"),
+    BotCommand(command="stats", description="📊 Bot statistikasi"),
+    BotCommand(command="users", description="👥 Foydalanuvchilar ro'yxati"),
+    BotCommand(command="admins", description="👑 Adminlar ro'yxati"),
+    BotCommand(command="addadmin", description="⭐ Yangi admin qo'shish"),
+    BotCommand(command="deladmin", description="🗑 Adminni olib tashlash"),
+    BotCommand(command="codes", description="🔑 Kinolar va ularning kodlari"),
+]
+

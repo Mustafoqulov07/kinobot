@@ -2,10 +2,13 @@ from aiogram import Router, F
 from aiogram.filters import CommandStart
 from aiogram.types import (
     Message, FSInputFile, KeyboardButton, ReplyKeyboardMarkup,
-    InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery,
+    InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, BotCommandScopeChat,
 )
 
-from config import ADMIN_USERNAME, CATEGORIES
+from config import (
+    ADMIN_USERNAME, CATEGORIES, ADMIN_IDS,
+    USER_COMMANDS, ADMIN_COMMANDS, SUPER_ADMIN_COMMANDS
+)
 import database as db
 
 router = Router()
@@ -34,6 +37,19 @@ async def start_handler(message: Message):
         await db.track_user(message.from_user.id, message.from_user.first_name, message.from_user.username)
     except Exception:
         pass
+
+    try:
+        uid = message.from_user.id
+        if uid in ADMIN_IDS:
+            cmds = SUPER_ADMIN_COMMANDS
+        elif await db.is_admin(uid):
+            cmds = ADMIN_COMMANDS
+        else:
+            cmds = USER_COMMANDS
+        await message.bot.set_my_commands(cmds, scope=BotCommandScopeChat(chat_id=message.chat.id))
+    except Exception:
+        pass
+
     banner = FSInputFile("static/banner.jpg")
     await message.answer_photo(
         banner,

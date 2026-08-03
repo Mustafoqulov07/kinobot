@@ -21,6 +21,9 @@ ko'rsatadigan bot. Admin videolarni botga yuboradi, foydalanuvchilar esa chiroyl
 - `/addmovie` — kino/multfilm/serial qo'shish (bosqichma-bosqich)
 - Serial tanlansa — barcha qismlarni **ketma-ket, bitta-bitta video yuborib** qo'shish (nom/tavsif/poster faqat bir marta so'raladi)
 - `/addepisode <kod>` — mavjud serialga keyinroq yangi qismlar qo'shish (masalan, yangi fasl chiqqanda)
+- `/addadmin <user_id yoki @username>` — Yangi foydalanuvchiga adminlik huquqini berish
+- `/deladmin <user_id yoki @username>` — Adminlik huquqini olib tashlash
+- `/admins` — Barcha adminlar ro'yxatini ko'rish
 - `/delete <kod>` — kino yoki serialni butunlay o'chirish
 - `/stats` — bot statistikasi (foydalanuvchilar soni, kino/multfilm/serial soni, jami ko'rishlar)
 - `/users` — so'nggi 30 foydalanuvchi ro'yxati

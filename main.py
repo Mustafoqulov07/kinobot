@@ -1,14 +1,17 @@
 import logging
 from contextlib import asynccontextmanager
 
-from aiogram.types import Update
+from aiogram.types import Update, BotCommandScopeDefault, BotCommandScopeChat
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import StreamingResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 
 import database as db
 from bot_instance import bot, dp
-from config import WEBHOOK_PATH, WEBHOOK_URL, BASE_URL, ADMIN_USERNAME
+from config import (
+    WEBHOOK_PATH, WEBHOOK_URL, BASE_URL, ADMIN_USERNAME, ADMIN_IDS,
+    USER_COMMANDS, ADMIN_COMMANDS, SUPER_ADMIN_COMMANDS
+)
 from handlers import user, admin
 from security import validate_init_data
 
@@ -22,6 +25,30 @@ dp.include_router(user.router)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await db.init_db()
+
+    # Dynamic command scopes setting
+    try:
+        await bot.set_my_commands(USER_COMMANDS, scope=BotCommandScopeDefault())
+        
+        # Super Adminlar
+        for super_aid in ADMIN_IDS:
+            try:
+                await bot.set_my_commands(SUPER_ADMIN_COMMANDS, scope=BotCommandScopeChat(chat_id=super_aid))
+            except Exception as ex:
+                logger.warning(f"Failed to set super admin commands for {super_aid}: {ex}")
+
+        # DB Oddiy Adminlar
+        db_admins = await db.get_db_admins()
+        for a in db_admins:
+            aid = a["user_id"]
+            if aid not in ADMIN_IDS:
+                try:
+                    await bot.set_my_commands(ADMIN_COMMANDS, scope=BotCommandScopeChat(chat_id=aid))
+                except Exception as ex:
+                    logger.warning(f"Failed to set admin commands for {aid}: {ex}")
+    except Exception as e:
+        logger.error(f"Error setting bot commands: {e}")
+
     if BASE_URL:
         await bot.set_webhook(WEBHOOK_URL, drop_pending_updates=True)
         logger.info(f"Webhook o'rnatildi: {WEBHOOK_URL}")
