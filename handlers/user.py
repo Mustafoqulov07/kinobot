@@ -1,5 +1,5 @@
 from aiogram import Router, F
-from aiogram.filters import CommandStart
+from aiogram.filters import CommandStart, Command
 from aiogram.types import (
     Message, FSInputFile, KeyboardButton, ReplyKeyboardMarkup,
     InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, BotCommandScopeChat,
@@ -69,6 +69,7 @@ async def contact_admin_handler(message: Message):
     await message.answer("Savol yoki taklifingiz bo'lsa, admin bilan bog'laning 👇", reply_markup=kb)
 
 
+@router.message(Command("codes"))
 @router.message(F.text == BTN_CODES)
 async def codes_list_handler(message: Message):
     movies = await db.get_movies(sort="new", limit=30)
