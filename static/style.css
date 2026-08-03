@@ -602,19 +602,88 @@ body {
   border-color: var(--glass-border-gold);
 }
 
+/* ---------- View Header Banner (Reyting & Sevimlilar) ---------- */
+.view-header-banner {
+  margin: 14px 16px 18px;
+  padding: 24px 20px;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, rgba(255, 184, 0, 0.16) 0%, rgba(255, 42, 109, 0.12) 50%, rgba(14, 16, 26, 0.85) 100%);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border-gold);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  position: relative;
+  overflow: hidden;
+}
+
+.view-header-banner::before {
+  content: "";
+  position: absolute;
+  top: -40px;
+  right: -40px;
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--gold-glow) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.view-header-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.view-header-title h2 {
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: -0.5px;
+  background: linear-gradient(135deg, #ffffff 40%, var(--gold) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.view-header-title .view-emoji {
+  font-size: 26px;
+  filter: drop-shadow(0 0 12px var(--gold-glow));
+}
+
+.view-header-sub {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-sub);
+  margin-top: 6px;
+  line-height: 1.45;
+}
+
+.view-header-banner.pink-theme {
+  background: linear-gradient(135deg, rgba(255, 42, 109, 0.16) 0%, rgba(168, 85, 247, 0.12) 50%, rgba(14, 16, 26, 0.85) 100%);
+  border-color: rgba(255, 42, 109, 0.35);
+  box-shadow: 0 12px 36px rgba(255, 42, 109, 0.18);
+}
+
+.view-header-banner.pink-theme .view-header-title h2 {
+  background: linear-gradient(135deg, #ffffff 40%, var(--pink) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
 /* ---------- Horizontal Carousels ---------- */
 .horizontal-carousel {
   display: flex;
   gap: 14px;
   overflow-x: auto;
-  padding: 2px 16px 14px;
+  padding: 4px 16px 16px;
   scrollbar-width: none;
+  min-height: 225px;
 }
 .horizontal-carousel::-webkit-scrollbar { display: none; }
 
 .horizontal-carousel .movie-card {
   flex: none;
   width: 140px;
+  height: 210px;
+  min-height: 210px;
 }
 
 /* ---------- Movie Card Grid ---------- */
@@ -622,7 +691,8 @@ body {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 14px;
-  padding: 4px 16px 16px;
+  padding: 4px 16px 20px;
+  min-height: 300px;
 }
 
 @media (min-width: 480px) {
@@ -632,7 +702,9 @@ body {
 /* ---------- Cinematic Movie Card ---------- */
 .movie-card {
   position: relative;
+  width: 100%;
   aspect-ratio: 2/3;
+  min-height: 210px;
   border-radius: var(--radius-md);
   overflow: hidden;
   background: linear-gradient(150deg, #161828, #0d0e17);
@@ -640,13 +712,7 @@ body {
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
   cursor: pointer;
   transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease, border-color 0.3s ease;
-  opacity: 0;
-  transform: translateY(18px);
-  animation: cardFadeUp 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
-}
-
-@keyframes cardFadeUp {
-  to { opacity: 1; transform: translateY(0); }
+  opacity: 1;
 }
 
 .movie-card:active {
