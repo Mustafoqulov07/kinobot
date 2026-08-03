@@ -97,6 +97,7 @@ function buildCard(movie, index = 0, rank = null) {
   card.className = "movie-card";
   card.style.animationDelay = `${Math.min(index, 10) * 45}ms`;
 
+  const isFav = state.favoriteIds.has(movie.id);
   const catSvg = CATEGORY_SVG[movie.category] || CATEGORY_SVG.kino;
   const posterInner = movie.poster_file_id
     ? `<img class="poster-image" src="/api/poster/${movie.id}" loading="lazy" alt="${escapeHtml(movie.title)}" />`
