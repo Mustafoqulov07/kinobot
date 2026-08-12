@@ -21,21 +21,12 @@ const els = {
   searchSuggestions: document.getElementById("searchSuggestions"),
   searchSuggestionsWrapper: document.getElementById("searchSuggestionsWrapper"),
   searchTypeChips: document.querySelectorAll(".search-type-chip"),
-  heroShowcase: document.getElementById("heroShowcase"),
-  storiesSection: document.getElementById("storiesSection"),
   sectionNew: document.getElementById("sectionNew"),
-  sectionTop: document.getElementById("sectionTop"),
   gridTitle: document.getElementById("gridTitle"),
   tabs: document.querySelectorAll(".tab-chip"),
   grid: document.getElementById("grid"),
   emptyState: document.getElementById("emptyState"),
   newCarousel: document.getElementById("newCarousel"),
-  topCarousel: document.getElementById("topCarousel"),
-  heroTrack: document.getElementById("heroTrack"),
-  heroDots: document.getElementById("heroDots"),
-  heroPrev: document.getElementById("heroPrev"),
-  heroNext: document.getElementById("heroNext"),
-  avatarRow: document.getElementById("avatarRow"),
   ratingGrid: document.getElementById("ratingGrid"),
   favGrid: document.getElementById("favGrid"),
   favEmpty: document.getElementById("favEmpty"),
@@ -67,6 +58,7 @@ let state = {
   favoriteIds: new Set(),
   currentView: "home",
   adminUsername: "",
+  hasNewMovies: false,
 };
 
 let debounceTimer = null;
@@ -177,104 +169,30 @@ async function handleToggleFavorite(movieId, btnEl) {
   }
 }
 
-// ---------- 3D Hero Slider Showcase ----------
-let heroTimer = null;
-let heroIndex = 0;
-let heroMovies = [];
-
-function renderHero(movies) {
-  heroMovies = movies.slice(0, 6);
-  els.heroTrack.innerHTML = "";
-  els.heroDots.innerHTML = "";
-
-  heroMovies.forEach((movie, i) => {
-    const slide = document.createElement("div");
-    slide.className = "hero-card-slide";
-    if (movie.poster_file_id) {
-      slide.style.backgroundImage = `url(/api/poster/${movie.id})`;
-    }
-    const badge = movie.is_series ? "SERIALLAR" : (CATEGORY_LABEL[movie.category] || "KINO").toUpperCase();
-    slide.innerHTML = `
-      <div class="hero-play-circle">▶</div>
-      <div class="hero-content">
-        <span class="hero-badge-pill">🔥 TOP SHOW · ${badge}</span>
-        <div class="hero-movie-name">${escapeHtml(movie.title)}</div>
-      </div>
-    `;
-    slide.addEventListener("click", () => openModal(movie));
-    els.heroTrack.appendChild(slide);
-
-    const dot = document.createElement("div");
-    dot.className = "hero-dot-item" + (i === 0 ? " active" : "");
-    els.heroDots.appendChild(dot);
-  });
-
-  heroIndex = 0;
-  restartHeroTimer();
-}
-
-function goToHeroSlide(index) {
-  if (heroMovies.length === 0) return;
-  heroIndex = (index + heroMovies.length) % heroMovies.length;
-  els.heroTrack.scrollTo({ left: heroIndex * els.heroTrack.clientWidth, behavior: "smooth" });
-  [...els.heroDots.children].forEach((d, i) => d.classList.toggle("active", i === heroIndex));
-}
-
-function restartHeroTimer() {
-  clearInterval(heroTimer);
-  if (heroMovies.length <= 1) return;
-  heroTimer = setInterval(() => goToHeroSlide(heroIndex + 1), 4800);
-}
-
-els.heroPrev.addEventListener("click", () => { goToHeroSlide(heroIndex - 1); restartHeroTimer(); });
-els.heroNext.addEventListener("click", () => { goToHeroSlide(heroIndex + 1); restartHeroTimer(); });
-
-els.heroTrack.addEventListener("scroll", () => {
-  clearTimeout(els.heroTrack._scrollTimer);
-  els.heroTrack._scrollTimer = setTimeout(() => {
-    const idx = Math.round(els.heroTrack.scrollLeft / els.heroTrack.clientWidth);
-    heroIndex = idx;
-    [...els.heroDots.children].forEach((d, i) => d.classList.toggle("active", i === idx));
-  }, 100);
-});
-
-// ---------- Stories Reel ----------
-function renderAvatarRow(movies) {
-  els.avatarRow.innerHTML = "";
-  movies.slice(0, 12).forEach((movie) => {
-    const item = document.createElement("div");
-    item.className = "story-item";
-    const catSvg = CATEGORY_SVG[movie.category] || CATEGORY_SVG.kino;
-    const inner = movie.poster_file_id
-      ? `<img src="/api/poster/${movie.id}" loading="lazy" alt="" />`
-      : `<div class="poster-fallback-vector" style="font-size:18px">${catSvg}</div>`;
-    item.innerHTML = `
-      <div class="story-ring"><div class="story-avatar">${inner}</div></div>
-      <div class="story-title">${escapeHtml(movie.title)}</div>
-    `;
-    item.addEventListener("click", () => openModal(movie));
-    els.avatarRow.appendChild(item);
-  });
-}
-
 // ---------- Home Views Loader ----------
 async function loadHomeCarousels() {
-  skeletonCards(els.newCarousel, 5);
-  skeletonCards(els.topCarousel, 5);
+  if (els.newCarousel) skeletonCards(els.newCarousel, 5);
 
-  const [newMovies, topMovies] = await Promise.all([
-    fetch("/api/movies?sort=new&limit=10").then((r) => r.json()),
-    fetch("/api/movies?sort=top&limit=10").then((r) => r.json()),
-  ]);
+  try {
+    // 7 kun ichida qo'shilgan kinolarni olamiz
+    const res = await fetch("/api/movies?sort=new&limit=10&days_limit=7");
+    const newMovies = await res.json();
 
-  els.newCarousel.innerHTML = "";
-  newMovies.forEach((m, i) => els.newCarousel.appendChild(buildCard(m, i)));
-
-  els.topCarousel.innerHTML = "";
-  topMovies.forEach((m, i) => els.topCarousel.appendChild(buildCard(m, i)));
-
-  renderHero(topMovies.length ? topMovies : newMovies);
-  renderAvatarRow(newMovies);
+    state.hasNewMovies = newMovies.length > 0;
+    if (els.newCarousel) {
+      els.newCarousel.innerHTML = "";
+      if (state.hasNewMovies) {
+        if (els.sectionNew) els.sectionNew.classList.toggle("hidden", !(!state.currentCategory));
+        newMovies.forEach((m, i) => els.newCarousel.appendChild(buildCard(m, i)));
+      } else {
+        if (els.sectionNew) els.sectionNew.classList.add("hidden");
+      }
+    }
+  } catch (e) {
+    console.error("Yangi kinolarni yuklashda xato:", e);
+    state.hasNewMovies = false;
+    if (els.sectionNew) els.sectionNew.classList.add("hidden");
+  }
 }
 
 async function loadHomeGrid() {
@@ -496,17 +414,9 @@ const CATEGORY_TITLE = {
 
 function updateCategorySections() {
   const isAll = !state.currentCategory;
-  if (els.heroShowcase) {
-    els.heroShowcase.classList.toggle("hidden", !isAll);
-    if (!isAll) {
-      clearInterval(heroTimer);
-    } else {
-      restartHeroTimer();
-    }
+  if (els.sectionNew) {
+    els.sectionNew.classList.toggle("hidden", !(isAll && state.hasNewMovies));
   }
-  if (els.storiesSection) els.storiesSection.classList.toggle("hidden", !isAll);
-  if (els.sectionNew) els.sectionNew.classList.toggle("hidden", !isAll);
-  if (els.sectionTop) els.sectionTop.classList.toggle("hidden", !isAll);
   if (els.gridTitle) els.gridTitle.textContent = CATEGORY_TITLE[state.currentCategory] || "Katalog";
 }
 
@@ -527,7 +437,6 @@ function enterSearchMode() {
   els.searchSuggestions.classList.remove("hidden");
   els.searchCancel.classList.remove("hidden");
   if (els.searchClearBtn) els.searchClearBtn.classList.remove("hidden");
-  clearInterval(heroTimer);
 }
 
 function exitSearchMode() {
@@ -539,7 +448,6 @@ function exitSearchMode() {
   els.searchCancel.classList.add("hidden");
   if (els.searchClearBtn) els.searchClearBtn.classList.add("hidden");
   els.homeMainContent.classList.remove("hidden");
-  restartHeroTimer();
 }
 
 async function triggerSearch() {
