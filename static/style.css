@@ -23,8 +23,8 @@
   --cyan-glow: rgba(0, 242, 254, 0.35);
   --cyan-soft: rgba(0, 242, 254, 0.12);
   
-  --purple: #a855f7;
-  --purple-glow: rgba(168, 85, 247, 0.35);
+  --blue: #2563eb;
+  --blue-glow: rgba(37, 99, 235, 0.35);
   
   --pink: #ff2a6d;
   --pink-glow: rgba(255, 42, 109, 0.4);
@@ -81,7 +81,7 @@ body {
   right: -150px;
   width: 450px;
   height: 450px;
-  background: radial-gradient(circle, var(--purple-glow) 0%, transparent 70%);
+  background: radial-gradient(circle, var(--blue-glow) 0%, transparent 70%);
 }
 .ambient-glow.spot-3 {
   bottom: 10%;
@@ -484,7 +484,7 @@ body {
   height: 66px;
   border-radius: 50%;
   padding: 2.5px;
-  background: conic-gradient(from 180deg, var(--gold), var(--pink), var(--purple), var(--cyan), var(--gold));
+  background: conic-gradient(from 180deg, var(--gold), var(--pink), var(--blue), var(--cyan), var(--gold));
   box-shadow: 0 4px 16px rgba(0, 242, 254, 0.25);
   transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
@@ -615,7 +615,7 @@ body {
 }
 .section-indicator.teal-glow { background: var(--cyan); box-shadow: 0 0 12px var(--cyan-glow); }
 .section-indicator.gold-glow { background: var(--gold); box-shadow: 0 0 12px var(--gold-glow); }
-.section-indicator.purple-glow { background: var(--purple); box-shadow: 0 0 12px var(--purple-glow); }
+.section-indicator.blue-glow { background: var(--blue); box-shadow: 0 0 12px var(--blue-glow); }
 
 .section-title {
   font-size: 17px;

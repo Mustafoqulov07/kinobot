@@ -8,7 +8,10 @@ from config import TURSO_DATABASE_URL, TURSO_AUTH_TOKEN
 
 def _raw_execute(sql: str, params: tuple = ()):
     """Har bir chaqiruvda yangi ulanish ochadi (thread-xavfsizlik uchun)."""
-    conn = libsql.connect(database=TURSO_DATABASE_URL, auth_token=TURSO_AUTH_TOKEN)
+    if TURSO_DATABASE_URL:
+        conn = libsql.connect(database=TURSO_DATABASE_URL, auth_token=TURSO_AUTH_TOKEN)
+    else:
+        conn = libsql.connect(database="local.db")
     try:
         cur = conn.execute(sql, params)
         conn.commit()

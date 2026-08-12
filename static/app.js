@@ -163,7 +163,10 @@ async function handleToggleFavorite(movieId, btnEl) {
     } else {
       state.favoriteIds.delete(movieId);
     }
-    if (btnEl) btnEl.textContent = result.favorited ? "❤️" : "🤍";
+    const favButtons = document.querySelectorAll(`.movie-card-fav-btn[data-id="${movieId}"]`);
+    favButtons.forEach(btn => {
+      btn.textContent = result.favorited ? "❤️" : "🤍";
+    });
     if (state.currentMovie && state.currentMovie.id === movieId) {
       els.modalFav.textContent = result.favorited ? "❤️" : "🤍";
     }
@@ -493,7 +496,14 @@ const CATEGORY_TITLE = {
 
 function updateCategorySections() {
   const isAll = !state.currentCategory;
-  if (els.heroShowcase) els.heroShowcase.classList.toggle("hidden", !isAll);
+  if (els.heroShowcase) {
+    els.heroShowcase.classList.toggle("hidden", !isAll);
+    if (!isAll) {
+      clearInterval(heroTimer);
+    } else {
+      restartHeroTimer();
+    }
+  }
   if (els.storiesSection) els.storiesSection.classList.toggle("hidden", !isAll);
   if (els.sectionNew) els.sectionNew.classList.toggle("hidden", !isAll);
   if (els.sectionTop) els.sectionTop.classList.toggle("hidden", !isAll);

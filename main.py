@@ -121,9 +121,36 @@ async def api_poster(movie_id: int):
     if not movie or not movie["poster_file_id"]:
         raise HTTPException(404, "Poster yo'q")
 
-    file = await bot.get_file(movie["poster_file_id"])
-    file_bytes = await bot.download_file(file.file_path)
-    return StreamingResponse(file_bytes, media_type="image/jpeg")
+    import os
+    import asyncio
+
+    file_id = movie["poster_file_id"]
+    cache_dir = "static/posters"
+    os.makedirs(cache_dir, exist_ok=True)
+    cache_path = os.path.join(cache_dir, f"{file_id}.jpg")
+
+    if os.path.exists(cache_path):
+        return FileResponse(cache_path, media_type="image/jpeg")
+
+    try:
+        file = await bot.get_file(file_id)
+        file_bytes = await bot.download_file(file.file_path)
+
+        def save_file(path, data_bytes):
+            with open(path, "wb") as f:
+                f.write(data_bytes.read())
+
+        await asyncio.to_thread(save_file, cache_path, file_bytes)
+        return FileResponse(cache_path, media_type="image/jpeg")
+    except Exception as e:
+        logger.error(f"Poster caching error for movie {movie_id}: {e}")
+        try:
+            if 'file_bytes' in locals():
+                file_bytes.seek(0)
+                return StreamingResponse(file_bytes, media_type="image/jpeg")
+        except Exception:
+            pass
+        raise HTTPException(500, f"Poster yuklashda xatolik: {e}")
 
 
 @app.post("/api/watch/{movie_id}")

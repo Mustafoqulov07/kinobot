@@ -25,6 +25,24 @@ class AddMovie(StatesGroup):
     episode_loop = State()   # serial uchun — ketma-ket qismlar
 
 
+@router.message(Command("cancel"))
+@router.message(F.text.lower() == "bekor qilish")
+async def cancel_handler(message: Message, state: FSMContext):
+    current_state = await state.get_state()
+    if current_state is None:
+        return
+    data = await state.get_data()
+    await state.clear()
+    if current_state == AddMovie.episode_loop.state:
+        await message.answer(
+            f"❌ Qismlar qo'shish to'xtatildi. "
+            f"Serial bazada saqlangan (kod: <b>{data.get('code')}</b>). "
+            f"Keyinchalik yangi qismlar qo'shish uchun <code>/addepisode {data.get('code')}</code> dan foydalanishingiz mumkin."
+        )
+    else:
+        await message.answer("❌ Yangi kino qo'shish jarayoni bekor qilindi.")
+
+
 def category_keyboard() -> InlineKeyboardMarkup:
     buttons = [
         [InlineKeyboardButton(text=label, callback_data=f"cat:{key}")]
