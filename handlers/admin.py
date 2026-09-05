@@ -19,10 +19,11 @@ async def is_admin(user_id: int) -> bool:
 class AddMovie(StatesGroup):
     title = State()
     category = State()
+    format_type = State()    # "single" yoki "multi"
     description = State()
     poster = State()
-    video = State()          # kino/multfilm uchun — bitta video
-    episode_loop = State()   # serial uchun — ketma-ket qismlar
+    video = State()          # bitta video uchun
+    episode_loop = State()   # ketma-ket qismlar uchun
 
 
 @router.message(Command("cancel"))
@@ -35,8 +36,8 @@ async def cancel_handler(message: Message, state: FSMContext):
     await state.clear()
     if current_state == AddMovie.episode_loop.state:
         await message.answer(
-            f"❌ Qismlar qo'shish to'xtatildi. "
-            f"Serial bazada saqlangan (kod: <b>{data.get('code')}</b>). "
+            f"❌ Qismlar qo'shish to'xtatildi.\n"
+            f"Kino bazada saqlangan (kod: <b>{data.get('code')}</b>).\n"
             f"Keyinchalik yangi qismlar qo'shish uchun <code>/addepisode {data.get('code')}</code> dan foydalanishingiz mumkin."
         )
     else:
@@ -51,6 +52,14 @@ def category_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
+def format_keyboard() -> InlineKeyboardMarkup:
+    buttons = [
+        [InlineKeyboardButton(text="📼 1 ta to'liq qism (Film)", callback_data="fmt:single")],
+        [InlineKeyboardButton(text="🎞 Ko'p qismli (1, 2, 3... qismlar)", callback_data="fmt:multi")],
+    ]
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
 @router.message(Command("addmovie"))
 async def add_movie_start(message: Message, state: FSMContext):
     if not await is_admin(message.from_user.id):
@@ -61,7 +70,7 @@ async def add_movie_start(message: Message, state: FSMContext):
 
 @router.message(AddMovie.title)
 async def add_movie_title(message: Message, state: FSMContext):
-    await state.update_data(title=message.text)
+    await state.update_data(title=message.text.strip())
     await state.set_state(AddMovie.category)
     await message.answer("Kategoriyani tanlang:", reply_markup=category_keyboard())
 
@@ -70,8 +79,32 @@ async def add_movie_title(message: Message, state: FSMContext):
 async def add_movie_category(callback: CallbackQuery, state: FSMContext):
     category = callback.data.split(":")[1]
     await state.update_data(category=category)
+    cat_label = CATEGORIES.get(category, category)
+
+    if category == "serial":
+        await state.update_data(format_type="multi")
+        await state.set_state(AddMovie.description)
+        await callback.message.edit_text(f"Kategoriya: {cat_label} ✅")
+        await callback.message.answer("Tavsif (qisqacha) yuboring. O'tkazib yuborish uchun /skip yozing:")
+    else:
+        await state.set_state(AddMovie.format_type)
+        await callback.message.edit_text(f"Kategoriya: {cat_label} ✅")
+        await callback.message.answer(
+            f"<b>{cat_label}</b> formatini tanlang:\n\n"
+            "• <b>1 ta to'liq qism</b> — oddiy film\n"
+            "• <b>Ko'p qismli</b> — bir nechta qismli kino (masalan: Forsaj 1, 2, 3...)",
+            reply_markup=format_keyboard()
+        )
+    await callback.answer()
+
+
+@router.callback_query(AddMovie.format_type, F.data.startswith("fmt:"))
+async def add_movie_format(callback: CallbackQuery, state: FSMContext):
+    fmt = callback.data.split(":")[1]
+    await state.update_data(format_type=fmt)
     await state.set_state(AddMovie.description)
-    await callback.message.edit_text(f"Kategoriya: {CATEGORIES[category]} ✅")
+    fmt_text = "1 ta to'liq qism (Film) 📼" if fmt == "single" else "Ko'p qismli (1, 2, 3...) 🎞"
+    await callback.message.edit_text(f"Format: {fmt_text} ✅")
     await callback.message.answer("Tavsif (qisqacha) yuboring. O'tkazib yuborish uchun /skip yozing:")
     await callback.answer()
 
@@ -94,16 +127,23 @@ async def _finish_poster_step(message: Message, state: FSMContext, poster_file_i
     data = await state.get_data()
     await state.update_data(poster_file_id=poster_file_id)
 
-    if data["category"] == "serial":
-        # Serial: yangi yozuv yaratamiz va darhol qism qo'shish rejimiga o'tamiz
-        code, movie_id = await db.add_series(data["title"], data.get("description", ""), poster_file_id)
+    format_type = data.get("format_type", "single")
+    category = data.get("category", "kino")
+    cat_label = CATEGORIES.get(category, "🎬 Kino")
+
+    if format_type == "multi":
+        code, movie_id = await db.add_multipart_movie(
+            data["title"], category, data.get("description", ""), poster_file_id
+        )
         await state.update_data(movie_id=movie_id, code=code, episodes_added=0)
         await state.set_state(AddMovie.episode_loop)
         await message.answer(
-            f"✅ Serial yaratildi!\n🎬 {data['title']}\nKod: <b>{code}</b>\n\n"
-            "Endi qismlarni <b>birin-ketin</b> yuboraveringizmumkin — har bir video avtomatik "
-            "keyingi qism sifatida qo'shiladi.\n\n"
-            "1-qism videosini yuboring. Tugatgach — <b>/done</b> yozing."
+            f"✅ <b>{cat_label}</b> yaratildi!\n"
+            f"🎬 {data['title']}\n"
+            f"🔑 Kod: <b>{code}</b>\n\n"
+            "Endi qismlarni <b>birin-ketin video qilib</b> yuboravering — har bir video avtomatik "
+            "keyingi qism (1-qism, 2-qism...) sifatida saqlanadi.\n\n"
+            "<b>1-qism</b> videosini yuboring. Barcha qismlar tugagach — <b>/done</b> yozing."
         )
     else:
         await state.set_state(AddMovie.video)
@@ -134,7 +174,7 @@ async def add_movie_video(message: Message, state: FSMContext):
     await message.answer(f"✅ Kino qo'shildi!\n\n🎬 {data['title']}\nKod: <b>{code}</b>")
 
 
-# ---------- Serial: qismlarni ketma-ket qo'shish ----------
+# ---------- Serial va Ko'p qismli kino: qismlarni ketma-ket qo'shish ----------
 @router.message(AddMovie.episode_loop, F.video)
 async def add_episode_loop(message: Message, state: FSMContext):
     data = await state.get_data()
@@ -142,7 +182,7 @@ async def add_episode_loop(message: Message, state: FSMContext):
     await state.update_data(episodes_added=ep_num)
     await message.answer(
         f"✅ <b>{ep_num}-qism</b> qo'shildi.\n"
-        "Yana video yuboring yoki tugatish uchun /done yozing."
+        "Keyingi qism videosini yuboring yoki tugatish uchun /done yozing."
     )
 
 
@@ -150,36 +190,43 @@ async def add_episode_loop(message: Message, state: FSMContext):
 async def add_episode_done(message: Message, state: FSMContext):
     data = await state.get_data()
     total = data.get("episodes_added", 0)
+    title = data.get("title", "")
+    code = data.get("code", "")
     await state.clear()
     await message.answer(
-        f"🎉 Tayyor! <b>{data['title']}</b> seriali {total} ta qism bilan saqlandi.\n"
-        f"Kod: <b>{data['code']}</b>"
+        f"🎉 Tayyor! <b>{title}</b> jami {total} ta qism bilan muvaffaqiyatli saqlandi.\n"
+        f"🔑 Kod: <b>{code}</b>"
     )
 
 
-# ---------- Mavjud serialga yangi qismlar qo'shish ----------
+# ---------- Mavjud kino yoki serialga yangi qismlar qo'shish ----------
 @router.message(Command("addepisode"))
 async def add_episode_to_existing_start(message: Message, state: FSMContext):
     if not await is_admin(message.from_user.id):
         return
     parts = message.text.split(maxsplit=1)
     if len(parts) != 2:
-        await message.answer("Foydalanish: /addepisode 1234 (1234 — serial kodi)")
+        await message.answer("Foydalanish: /addepisode 1234 (1234 — kino yoki serial kodi)")
         return
 
-    movie = await db.get_movie_by_code(parts[1].strip())
-    if not movie or movie["category"] != "serial":
-        await message.answer("❌ Bunday kodli serial topilmadi.")
+    code = parts[1].strip()
+    movie = await db.get_movie_by_code(code)
+    if not movie:
+        await message.answer("❌ Bunday kodli kino yoki serial topilmadi.")
         return
+
+    # Agar kino ilgari 1 ta video bo'lsa, uni avtomatik 1-qismga aylantiramiz
+    current_episodes_count = await db.ensure_movie_has_episodes(movie["id"])
 
     await state.update_data(
         movie_id=movie["id"], code=movie["code"], title=movie["title"],
-        episodes_added=movie["episode_count"],
+        episodes_added=current_episodes_count,
     )
     await state.set_state(AddMovie.episode_loop)
+    cat_emoji = CATEGORIES.get(movie["category"], "🎬").split()[0]
     await message.answer(
-        f"🎬 <b>{movie['title']}</b> (hozir {movie['episode_count']} qism bor)\n\n"
-        f"Yangi qism videosini yuboring — {movie['episode_count'] + 1}-qism sifatida qo'shiladi.\n"
+        f"{cat_emoji} <b>{movie['title']}</b> (hozir {current_episodes_count} ta qism mavjud)\n\n"
+        f"Yangi qism videosini yuboring — <b>{current_episodes_count + 1}-qism</b> sifatida qo'shiladi.\n"
         "Tugatgach — /done yozing."
     )
 

@@ -93,10 +93,20 @@ MOVIE_SELECT = """
 
 
 def _row_to_movie(r) -> dict:
+    ep_count = r[7] if r[7] is not None else 0
+    is_series = r[3] == "serial"
+    has_episodes = ep_count > 0 or is_series
     return {
-        "id": r[0], "code": r[1], "title": r[2], "category": r[3],
-        "description": r[4], "poster_file_id": r[5], "views": r[6],
-        "episode_count": r[7], "is_series": r[3] == "serial",
+        "id": r[0],
+        "code": r[1],
+        "title": r[2],
+        "category": r[3],
+        "description": r[4],
+        "poster_file_id": r[5],
+        "views": r[6],
+        "episode_count": ep_count,
+        "is_series": is_series,
+        "has_episodes": has_episodes,
     }
 
 
@@ -170,16 +180,20 @@ async def add_movie(title, category, description, poster_file_id, video_file_id)
     return code
 
 
-# ---------- Serial (ko'p qismli) ----------
-async def add_series(title, description, poster_file_id) -> tuple[str, int]:
+# ---------- Ko'p qismli (Kino / Serial / Multfilm) ----------
+async def add_multipart_movie(title: str, category: str, description: str | None, poster_file_id: str | None) -> tuple[str, int]:
     code = await generate_unique_code()
     await _execute(
         """INSERT INTO movies (code, title, category, description, poster_file_id, video_file_id)
-           VALUES (?, ?, 'serial', ?, ?, NULL)""",
-        (code, title, description or "", poster_file_id),
+           VALUES (?, ?, ?, ?, ?, NULL)""",
+        (code, title, category, description or "", poster_file_id),
     )
     rows = await _execute("SELECT id FROM movies WHERE code = ?", (code,))
     return code, rows[0][0]
+
+
+async def add_series(title, description, poster_file_id) -> tuple[str, int]:
+    return await add_multipart_movie(title, "serial", description, poster_file_id)
 
 
 async def add_episode(movie_id: int, video_file_id: str) -> int:
@@ -194,6 +208,18 @@ async def add_episode(movie_id: int, video_file_id: str) -> int:
     return next_num
 
 
+async def ensure_movie_has_episodes(movie_id: int) -> int:
+    """Agar kinoda faqat bitta video_file_id bo'lsa, uni 1-qism qilib movie_episodes ga ko'chiradi."""
+    episodes = await get_episodes(movie_id)
+    if not episodes:
+        video_id = await get_movie_video(movie_id)
+        if video_id:
+            await add_episode(movie_id, video_id)
+            await _execute("UPDATE movies SET video_file_id = NULL WHERE id = ?", (movie_id,))
+            return 1
+    return len(episodes)
+
+
 async def get_episodes(movie_id: int):
     rows = await _execute(
         "SELECT id, episode_number FROM movie_episodes WHERE movie_id = ? ORDER BY episode_number",
@@ -204,7 +230,7 @@ async def get_episodes(movie_id: int):
 
 async def get_episode_by_id(episode_id: int):
     rows = await _execute(
-        """SELECT e.id, e.episode_number, e.video_file_id, e.movie_id, m.title
+        """SELECT e.id, e.episode_number, e.video_file_id, e.movie_id, m.title, m.category
            FROM movie_episodes e JOIN movies m ON m.id = e.movie_id
            WHERE e.id = ?""",
         (episode_id,),
@@ -212,7 +238,14 @@ async def get_episode_by_id(episode_id: int):
     if not rows:
         return None
     r = rows[0]
-    return {"id": r[0], "episode_number": r[1], "video_file_id": r[2], "movie_id": r[3], "title": r[4]}
+    return {
+        "id": r[0],
+        "episode_number": r[1],
+        "video_file_id": r[2],
+        "movie_id": r[3],
+        "title": r[4],
+        "category": r[5]
+    }
 
 
 # ---------- Umumiy ----------
@@ -221,25 +254,85 @@ async def get_movies(category: str | None = None, search: str | None = None,
                       days_limit: int | None = None):
     query = MOVIE_SELECT + " WHERE 1=1"
     params = []
+    order_params = []
+    custom_order = None
+
     if category:
         query += " AND m.category = ?"
         params.append(category)
     if days_limit is not None:
         query += " AND m.created_at >= datetime('now', '-' || ? || ' days')"
         params.append(days_limit)
+
     if search:
+        search_clean = search.strip()
+        tokens = [t for t in search_clean.split() if t]
+
         if search_type == "code":
             query += " AND m.code LIKE ?"
-            params.append(f"%{search}%")
+            params.append(f"%{search_clean}%")
+            custom_order = """
+                ORDER BY 
+                    CASE 
+                        WHEN m.code = ? THEN 1
+                        WHEN m.code LIKE (? || '%') THEN 2
+                        ELSE 3
+                    END ASC, m.views DESC, m.id DESC
+            """
+            order_params = [search_clean, search_clean]
         elif search_type == "title":
-            query += " AND m.title LIKE ?"
-            params.append(f"%{search}%")
+            conds = ["(LOWER(m.title) LIKE LOWER(?) OR LOWER(m.description) LIKE LOWER(?))"]
+            params.append(f"%{search_clean}%")
+            params.append(f"%{search_clean}%")
+            for t in tokens:
+                conds.append("LOWER(m.title) LIKE LOWER(?)")
+                params.append(f"%{t}%")
+            query += " AND (" + " OR ".join(conds) + ")"
+            custom_order = """
+                ORDER BY 
+                    CASE 
+                        WHEN LOWER(m.title) = LOWER(?) THEN 1
+                        WHEN LOWER(m.title) LIKE LOWER(? || '%') THEN 2
+                        WHEN LOWER(m.title) LIKE LOWER('%' || ? || '%') THEN 3
+                        ELSE 4
+                    END ASC, m.views DESC, m.id DESC
+            """
+            order_params = [search_clean, search_clean, search_clean]
         else:
-            query += " AND (m.title LIKE ? OR m.code LIKE ?)"
-            params.append(f"%{search}%")
-            params.append(f"%{search}%")
+            # Barchasi: kod va nomi bo'yicha yaqin qidiruv
+            conds = [
+                "(LOWER(m.title) LIKE LOWER(?) OR m.code LIKE ? OR LOWER(m.description) LIKE LOWER(?))"
+            ]
+            params.append(f"%{search_clean}%")
+            params.append(f"%{search_clean}%")
+            params.append(f"%{search_clean}%")
+            for t in tokens:
+                conds.append("(LOWER(m.title) LIKE LOWER(?) OR m.code LIKE ?)")
+                params.append(f"%{t}%")
+                params.append(f"%{t}%")
+            query += " AND (" + " OR ".join(conds) + ")"
+            custom_order = """
+                ORDER BY 
+                    CASE 
+                        WHEN m.code = ? THEN 1
+                        WHEN LOWER(m.title) = LOWER(?) THEN 2
+                        WHEN m.code LIKE (? || '%') THEN 3
+                        WHEN LOWER(m.title) LIKE LOWER(? || '%') THEN 4
+                        WHEN LOWER(m.title) LIKE LOWER('%' || ? || '%') THEN 5
+                        WHEN m.code LIKE ('%' || ? || '%') THEN 6
+                        ELSE 7
+                    END ASC, m.views DESC, m.id DESC
+            """
+            order_params = [
+                search_clean, search_clean, search_clean,
+                search_clean, search_clean, search_clean
+            ]
 
-    query += " ORDER BY m.views DESC, m.id DESC" if sort == "top" else " ORDER BY m.id DESC"
+    if custom_order:
+        query += custom_order
+        params.extend(order_params)
+    else:
+        query += " ORDER BY m.views DESC, m.id DESC" if sort == "top" else " ORDER BY m.id DESC"
 
     if limit:
         query += " LIMIT ?"

@@ -14,13 +14,17 @@ const CATEGORY_SVG = {
 const CATEGORY_LABEL = { kino: "Kino", multfilm: "Multfilm", serial: "Serial" };
 
 const els = {
-  searchInput: document.getElementById("searchInput"),
-  searchClearBtn: document.getElementById("searchClearBtn"),
-  searchCancel: document.getElementById("searchCancel"),
   headerSearchBtn: document.getElementById("headerSearchBtn"),
+  homeSearchTrigger: document.getElementById("homeSearchTrigger"),
+  bottomNavSearch: document.getElementById("bottomNavSearch"),
+  searchModal: document.getElementById("searchModal"),
+  searchModalBackBtn: document.getElementById("searchModalBackBtn"),
+  searchModalInput: document.getElementById("searchModalInput"),
+  searchModalClearBtn: document.getElementById("searchModalClearBtn"),
+  searchDefaultState: document.getElementById("searchDefaultState"),
   searchSuggestions: document.getElementById("searchSuggestions"),
-  searchSuggestionsWrapper: document.getElementById("searchSuggestionsWrapper"),
   searchTypeChips: document.querySelectorAll(".search-type-chip"),
+  quickChips: document.querySelectorAll(".quick-chip"),
   sectionNew: document.getElementById("sectionNew"),
   gridTitle: document.getElementById("gridTitle"),
   tabs: document.querySelectorAll(".tab-chip"),
@@ -102,9 +106,11 @@ function buildCard(movie, index = 0, rank = null) {
     ? `<img class="poster-image" src="/api/poster/${movie.id}" loading="lazy" alt="${escapeHtml(movie.title)}" />`
     : `<div class="poster-fallback-vector">${catSvg}</div>`;
 
-  const badgeText = movie.is_series && movie.episode_count > 0
-    ? `${catSvg} <span>${movie.episode_count} qism</span>`
-    : `${catSvg} <span>${CATEGORY_LABEL[movie.category] || ""}</span>`;
+  const hasEps = movie.has_episodes || movie.is_series || (movie.episode_count > 1);
+  const badgeLabel = hasEps && movie.episode_count > 0
+    ? `${movie.episode_count} qism`
+    : (CATEGORY_LABEL[movie.category] || "Kino");
+  const badgeText = `${catSvg} <span>${badgeLabel}</span>`;
 
   const rankHtml = rank ? `<div class="rank-badge">${rank}</div>` : "";
 
@@ -330,7 +336,9 @@ async function openModal(movie) {
   els.watchStatus.textContent = "";
   els.modalOverlay.classList.add("open");
 
-  if (movie.is_series) {
+  const hasEpisodes = movie.has_episodes || movie.is_series || (movie.episode_count > 0);
+
+  if (hasEpisodes) {
     els.watchBtn.classList.add("hidden");
     els.episodeList.classList.remove("hidden");
     els.episodeList.innerHTML = `<p class="watch-status-msg">Qismlar yuklanmoqda...</p>`;
@@ -430,34 +438,80 @@ els.tabs.forEach((tab) => {
   });
 });
 
-// ---------- Search Mode Logic ----------
-function enterSearchMode() {
-  els.homeMainContent.classList.add("hidden");
-  if (els.searchSuggestionsWrapper) els.searchSuggestionsWrapper.classList.remove("hidden");
-  els.searchSuggestions.classList.remove("hidden");
-  els.searchCancel.classList.remove("hidden");
-  if (els.searchClearBtn) els.searchClearBtn.classList.remove("hidden");
+// ---------- Alohida Qidiruv Oynasi (Dedicated Search Modal) ----------
+function openSearchModal(initialQuery = "") {
+  if (!els.searchModal) return;
+  els.searchModal.classList.remove("hidden");
+  document.body.style.overflow = "hidden";
+
+  try {
+    if (tg && tg.BackButton) {
+      tg.BackButton.show();
+      tg.BackButton.onClick(closeSearchModal);
+    }
+  } catch (e) {}
+
+  if (initialQuery) {
+    els.searchModalInput.value = initialQuery;
+    if (els.searchModalClearBtn) els.searchModalClearBtn.classList.remove("hidden");
+    triggerSearch();
+  } else {
+    if (!els.searchModalInput.value.trim()) {
+      if (els.searchDefaultState) els.searchDefaultState.classList.remove("hidden");
+      if (els.searchSuggestions) {
+        els.searchSuggestions.classList.add("hidden");
+        els.searchSuggestions.innerHTML = "";
+      }
+    }
+  }
+
+  setTimeout(() => {
+    if (els.searchModalInput) els.searchModalInput.focus();
+  }, 80);
 }
 
-function exitSearchMode() {
-  els.searchInput.value = "";
-  els.searchInput.blur();
-  if (els.searchSuggestionsWrapper) els.searchSuggestionsWrapper.classList.add("hidden");
-  els.searchSuggestions.classList.add("hidden");
-  els.searchSuggestions.innerHTML = "";
-  els.searchCancel.classList.add("hidden");
-  if (els.searchClearBtn) els.searchClearBtn.classList.add("hidden");
-  els.homeMainContent.classList.remove("hidden");
+function closeSearchModal() {
+  if (!els.searchModal) return;
+  els.searchModal.classList.add("hidden");
+  document.body.style.overflow = "";
+  if (els.searchModalInput) els.searchModalInput.blur();
+
+  try {
+    if (tg && tg.BackButton) {
+      tg.BackButton.hide();
+      tg.BackButton.offClick(closeSearchModal);
+    }
+  } catch (e) {}
+
+  // Pastki navigatsiyada qidiruv faol qolib ketmasligi uchun joriy ko'rinishga moslash
+  if (els.navBtns) {
+    els.navBtns.forEach((b) => b.classList.toggle("active", b.dataset.view === state.currentView));
+  }
 }
 
 async function triggerSearch() {
-  const query = els.searchInput.value.trim();
-  if (els.searchClearBtn) els.searchClearBtn.classList.toggle("hidden", query === "");
+  if (!els.searchModalInput) return;
+  const query = els.searchModalInput.value.trim();
+
+  if (els.searchModalClearBtn) {
+    els.searchModalClearBtn.classList.toggle("hidden", query === "");
+  }
+
   if (!query) {
-    renderSuggestions([], "");
+    if (els.searchDefaultState) els.searchDefaultState.classList.remove("hidden");
+    if (els.searchSuggestions) {
+      els.searchSuggestions.classList.add("hidden");
+      els.searchSuggestions.innerHTML = "";
+    }
     return;
   }
-  els.searchSuggestions.innerHTML = `<p class="watch-status-msg">Qidirilmoqda...</p>`;
+
+  if (els.searchDefaultState) els.searchDefaultState.classList.add("hidden");
+  if (els.searchSuggestions) {
+    els.searchSuggestions.classList.remove("hidden");
+    els.searchSuggestions.innerHTML = `<p class="watch-status-msg" style="padding:24px 0">🔍 Qidirilmoqda...</p>`;
+  }
+
   try {
     const params = new URLSearchParams({ search: query });
     if (state.searchType && state.searchType !== "all") {
@@ -467,58 +521,111 @@ async function triggerSearch() {
     const movies = await res.json();
     renderSuggestions(movies, query);
   } catch (e) {
-    els.searchSuggestions.innerHTML = `<p class="watch-status-msg">❌ Xatolik yuz berdi</p>`;
+    if (els.searchSuggestions) {
+      els.searchSuggestions.innerHTML = `<p class="watch-status-msg" style="padding:24px 0">❌ Qidirishda xatolik yuz berdi</p>`;
+    }
   }
 }
 
 function renderSuggestions(movies, query) {
+  if (!els.searchSuggestions) return;
   els.searchSuggestions.innerHTML = "";
+
   if (!query) {
-    els.searchSuggestions.innerHTML = `<p class="watch-status-msg">Kino/serial nomi yoki 4-xonali kodini yozing...</p>`;
+    if (els.searchDefaultState) els.searchDefaultState.classList.remove("hidden");
+    els.searchSuggestions.classList.add("hidden");
     return;
   }
-  if (movies.length === 0) {
-    els.searchSuggestions.innerHTML = `<p class="watch-status-msg">🔍 "${escapeHtml(query)}" bo'yicha hech narsa topilmadi</p>`;
+
+  if (!movies || movies.length === 0) {
+    els.searchSuggestions.innerHTML = `
+      <div style="text-align:center; padding:40px 16px;">
+        <div style="font-size:44px; margin-bottom:12px;">🔍</div>
+        <h4 style="font-size:16px; font-weight:700; color:var(--text-main); margin-bottom:6px;">Hech narsa topilmadi</h4>
+        <p style="font-size:13px; color:var(--text-sub); line-height:1.5; max-width:280px; margin:0 auto;">
+          "<b>${escapeHtml(query)}</b>" bo'yicha ma'lumot topilmadi. Kino nomi yoki 4 xonali kodini tekshirib qayta kiriting.
+        </p>
+      </div>
+    `;
     return;
   }
+
   movies.forEach((movie) => {
     const item = document.createElement("div");
     item.className = "search-item-card";
     const catSvg = CATEGORY_SVG[movie.category] || CATEGORY_SVG.kino;
     const poster = movie.poster_file_id
-      ? `<img src="/api/poster/${movie.id}" alt="" />`
-      : `<div class="poster-fallback-vector" style="font-size:16px">${catSvg}</div>`;
-    const meta = movie.is_series && movie.episode_count > 0
-      ? `${movie.episode_count} qism`
-      : (CATEGORY_LABEL[movie.category] || "");
+      ? `<img src="/api/poster/${movie.id}" alt="" loading="lazy" />`
+      : `<div class="poster-fallback-vector" style="font-size:18px">${catSvg}</div>`;
+
+    const catLabel = CATEGORY_LABEL[movie.category] || "Kino";
+    const hasEps = movie.has_episodes || movie.is_series || (movie.episode_count > 1);
+    const seriesExtra = hasEps && movie.episode_count > 0 ? ` (${movie.episode_count} qism)` : "";
+
     item.innerHTML = `
       <div class="search-item-poster">${poster}</div>
       <div class="search-item-info">
         <div class="search-item-title">${escapeHtml(movie.title)}</div>
-        <div class="search-item-meta">${meta} · 👁 ${formatViews(movie.views)} · <span style="color:var(--gold);font-weight:700">🔑 ${movie.code}</span></div>
+        <div class="search-item-meta">
+          <span>${catLabel}${seriesExtra}</span>
+          <span>·</span>
+          <span>👁 ${formatViews(movie.views)}</span>
+          <span class="search-item-code-badge">🔑 ${movie.code}</span>
+        </div>
       </div>
     `;
+
     item.addEventListener("click", () => {
-      exitSearchMode();
+      closeSearchModal();
       openModal(movie);
     });
+
     els.searchSuggestions.appendChild(item);
   });
 }
 
-els.searchInput.addEventListener("focus", enterSearchMode);
+// Qidiruv oynasini ochish uchun hodisalar
+if (els.homeSearchTrigger) {
+  els.homeSearchTrigger.addEventListener("click", () => openSearchModal());
+}
 
 if (els.headerSearchBtn) {
-  els.headerSearchBtn.addEventListener("click", () => {
-    els.searchInput.focus();
-    enterSearchMode();
+  els.headerSearchBtn.addEventListener("click", () => openSearchModal());
+}
+
+if (els.bottomNavSearch) {
+  els.bottomNavSearch.addEventListener("click", (e) => {
+    e.preventDefault();
+    openSearchModal();
   });
 }
 
-els.searchInput.addEventListener("input", () => {
-  clearTimeout(debounceTimer);
-  debounceTimer = setTimeout(triggerSearch, 280);
-});
+if (els.searchModalBackBtn) {
+  els.searchModalBackBtn.addEventListener("click", closeSearchModal);
+}
+
+if (els.searchModalInput) {
+  els.searchModalInput.addEventListener("input", () => {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(triggerSearch, 220);
+  });
+
+  els.searchModalInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      clearTimeout(debounceTimer);
+      triggerSearch();
+    }
+  });
+}
+
+if (els.searchModalClearBtn) {
+  els.searchModalClearBtn.addEventListener("click", () => {
+    els.searchModalInput.value = "";
+    els.searchModalClearBtn.classList.add("hidden");
+    triggerSearch();
+    els.searchModalInput.focus();
+  });
+}
 
 if (els.searchTypeChips) {
   els.searchTypeChips.forEach((chip) => {
@@ -531,16 +638,16 @@ if (els.searchTypeChips) {
   });
 }
 
-if (els.searchClearBtn) {
-  els.searchClearBtn.addEventListener("click", () => {
-    els.searchInput.value = "";
-    els.searchClearBtn.classList.add("hidden");
-    renderSuggestions([], "");
-    els.searchInput.focus();
+if (els.quickChips) {
+  els.quickChips.forEach((chip) => {
+    chip.addEventListener("click", () => {
+      const q = chip.dataset.query;
+      els.searchModalInput.value = q;
+      if (els.searchModalClearBtn) els.searchModalClearBtn.classList.remove("hidden");
+      triggerSearch();
+    });
   });
 }
-
-els.searchCancel.addEventListener("click", exitSearchMode);
 
 // ---------- View Switcher ----------
 function switchView(viewName) {

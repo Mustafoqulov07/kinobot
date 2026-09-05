@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/static/style.css?v=600">
+<link rel="stylesheet" href="/static/style.css?v=602">
 </head>
 <body>
 
@@ -40,24 +40,13 @@
   <!-- ============ BOSH SAHIFA (HOME) ============ -->
   <section id="view-home" class="view active-view">
 
-    <!-- Search Section -->
-    <div class="search-section">
-      <div class="search-box">
+    <!-- Search Trigger Bar (Opens Dedicated Search Window) -->
+    <div class="search-trigger-section">
+      <div id="homeSearchTrigger" class="search-trigger-box">
         <svg class="search-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input id="searchInput" type="text" placeholder="Nomi yoki 4 xonali kodini yozing..." autocomplete="off" />
-        <button id="searchClearBtn" class="search-clear-btn hidden" aria-label="Tozalash">✕</button>
+        <span class="search-trigger-placeholder">Kino nomi yoki 4 xonali kodi bilan qidirish...</span>
+        <span class="search-trigger-badge">Qidiruv</span>
       </div>
-      <button id="searchCancel" class="search-cancel-btn hidden">Bekor qilish</button>
-    </div>
-
-    <!-- Live Search Suggestions Drawer -->
-    <div id="searchSuggestionsWrapper" class="search-drawer-container hidden">
-      <div id="searchTypeBar" class="search-type-bar">
-        <button class="search-type-chip active" data-type="all">🔍 Barchasi</button>
-        <button class="search-type-chip" data-type="title">🔤 Nomi bo'yicha</button>
-        <button class="search-type-chip" data-type="code">🔑 Kodi bo'yicha</button>
-      </div>
-      <div id="searchSuggestions" class="search-results-drawer"></div>
     </div>
 
     <div id="homeMainContent">
@@ -199,6 +188,12 @@
     </div>
     <span class="nav-text">Bosh sahifa</span>
   </button>
+  <button class="nav-item" data-view="search" id="bottomNavSearch">
+    <div class="nav-icon-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    </div>
+    <span class="nav-text">Qidiruv</span>
+  </button>
   <button class="nav-item" data-view="rating">
     <div class="nav-icon-wrap">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
@@ -218,6 +213,61 @@
     <span class="nav-text">Profil</span>
   </button>
 </nav>
+
+<!-- ============ ALOHIDA QIDIRUV OYNASI (FULLSCREEN SEARCH MODAL) ============ -->
+<div id="searchModal" class="search-modal-backdrop hidden">
+  <div class="search-modal-window">
+    <!-- Top Search Header -->
+    <div class="search-modal-header">
+      <button id="searchModalBackBtn" class="search-modal-back-btn" aria-label="Orqaga">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="19" y1="12" x2="5" y2="12"></line>
+          <polyline points="12 19 5 12 12 5"></polyline>
+        </svg>
+      </button>
+
+      <div class="search-modal-box">
+        <svg class="search-modal-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <input id="searchModalInput" type="text" placeholder="Nomi yoki 4 xonali kodini yozing..." autocomplete="off" />
+        <button id="searchModalClearBtn" class="search-modal-clear-btn hidden" aria-label="Tozalash">✕</button>
+      </div>
+    </div>
+
+    <!-- Filter Type Chips (Kodi va Nomi bo'yicha) -->
+    <div class="search-type-bar" id="searchTypeBar">
+      <button class="search-type-chip active" data-type="all">🔍 Hammasi (Nom & Kod)</button>
+      <button class="search-type-chip" data-type="title">🔤 Nomi bo'yicha</button>
+      <button class="search-type-chip" data-type="code">🔑 Kodi bo'yicha</button>
+    </div>
+
+    <!-- Search Scrollable Content -->
+    <div class="search-modal-body">
+      <!-- Boshlang'ich holat (bo'sh turganda) -->
+      <div id="searchDefaultState" class="search-default-state">
+        <div class="search-state-icon">🎬</div>
+        <h3 class="search-state-title">Kino va seriallarni qidiring</h3>
+        <p class="search-state-desc">
+          Kino yoki serial nomini yozing yoki <b>4 xonali kodini</b> kiriting.
+          Tizim nomi va kodiga yaqin barcha kinolarni topib beradi.
+        </p>
+
+        <div class="search-quick-tags">
+          <span class="quick-tags-title">Tezkor toifalar:</span>
+          <div class="quick-tags-row">
+            <button class="quick-chip" data-query="kino">🎬 Kinolar</button>
+            <button class="quick-chip" data-query="serial">📺 Seriallar</button>
+            <button class="quick-chip" data-query="multfilm">🧸 Multfilmlar</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Qidiruv natijalari ro'yxati -->
+      <div id="searchSuggestions" class="search-results-drawer hidden"></div>
+    </div>
+  </div>
+</div>
 
 <!-- ============ ULTRAGLASS DETAIL MODAL DRAWER ============ -->
 <div id="modalOverlay" class="modal-backdrop">
@@ -250,6 +300,6 @@
   </div>
 </div>
 
-<script src="/static/app.js?v=600"></script>
+<script src="/static/app.js?v=602"></script>
 </body>
 </html>

@@ -165,8 +165,8 @@ async def api_watch(movie_id: int, request: Request):
     movie = await db.get_movie_by_id(movie_id)
     if not movie:
         raise HTTPException(404, "Topilmadi")
-    if movie["is_series"]:
-        raise HTTPException(400, "Bu serial — qism tanlang")
+    if movie.get("has_episodes") or movie.get("is_series") or (movie.get("episode_count", 0) > 0):
+        raise HTTPException(400, "Bu ko'p qismli — iltimos kerakli qismni tanlang")
 
     video_id = await db.get_movie_video(movie_id)
     chat_id = user_data["id"]
@@ -183,7 +183,7 @@ async def api_watch(movie_id: int, request: Request):
     return {"ok": True}
 
 
-# ---------- Serial qismlari ----------
+# ---------- Serial va Ko'p qismli kino qismlari ----------
 @app.get("/api/episodes/{movie_id}")
 async def api_episodes(movie_id: int):
     try:
@@ -203,7 +203,9 @@ async def api_watch_episode(episode_id: int, request: Request):
         raise HTTPException(404, "Topilmadi")
 
     chat_id = user_data["id"]
-    caption = f"📺 <b>{episode['title']}</b> — {episode['episode_number']}-qism"
+    cat = episode.get("category", "serial")
+    cat_emoji = "📺" if cat == "serial" else ("🧸" if cat == "multfilm" else "🎬")
+    caption = f"{cat_emoji} <b>{episode['title']}</b> — {episode['episode_number']}-qism"
     try:
         await bot.send_video(chat_id, episode["video_file_id"], caption=caption)
     except Exception as e:
