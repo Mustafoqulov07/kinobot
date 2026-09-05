@@ -1,4 +1,7 @@
 __pycache__/
 *.pyc
-movies.db
+*.db
 .env
+/kinobot
+/app
+static/posters/
