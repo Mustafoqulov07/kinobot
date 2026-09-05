@@ -25,14 +25,6 @@ const els = {
   searchSuggestions: document.getElementById("searchSuggestions"),
   searchTypeChips: document.querySelectorAll(".search-type-chip"),
   quickChips: document.querySelectorAll(".quick-chip"),
-  heroBillboard: document.getElementById("heroBillboard"),
-  heroBg: document.getElementById("heroBg"),
-  heroTitle: document.getElementById("heroTitle"),
-  heroCat: document.getElementById("heroCat"),
-  heroCodeBadge: document.getElementById("heroCodeBadge"),
-  heroDesc: document.getElementById("heroDesc"),
-  heroWatchBtn: document.getElementById("heroWatchBtn"),
-  heroDetailBtn: document.getElementById("heroDetailBtn"),
   modalBackdropBlur: document.getElementById("modalBackdropBlur"),
   sectionNew: document.getElementById("sectionNew"),
   gridTitle: document.getElementById("gridTitle"),
@@ -121,12 +113,18 @@ function buildCard(movie, index = 0, rank = null) {
     : (CATEGORY_LABEL[movie.category] || "Kino");
   const badgeText = `${catSvg} <span>${badgeLabel}</span>`;
 
-  const rankHtml = rank ? `<div class="cinema-rank-number">${rank}</div>` : "";
+  let rankHtml = "";
+  if (rank) {
+    const rankLabel = rank === 1 ? "🥇 1" : (rank === 2 ? "🥈 2" : (rank === 3 ? "🥉 3" : `#${rank}`));
+    rankHtml = `<div class="rank-badge-pill rank-${Math.min(rank, 4)}">${rankLabel}</div>`;
+  }
+
+  const badgeStyle = rank ? 'style="left:auto;right:44px;"' : '';
 
   card.innerHTML = `
     ${rankHtml}
     ${posterInner}
-    <div class="movie-card-badge">${badgeText}</div>
+    <div class="movie-card-badge" ${badgeStyle}>${badgeText}</div>
     <button class="movie-card-fav-btn" data-id="${movie.id}">${isFav ? "❤️" : "🤍"}</button>
     <div class="movie-card-scrim">
       <div class="movie-card-title">${escapeHtml(movie.title)}</div>
@@ -210,44 +208,6 @@ async function loadHomeCarousels() {
   }
 }
 
-function setupHeroBillboard(movies) {
-  if (!els.heroBillboard) return;
-  if (state.currentCategory || !movies || movies.length === 0) {
-    els.heroBillboard.classList.add("hidden");
-    return;
-  }
-
-  // Eng sara kino (posteri bor birinchisi yoki eng ko'p ko'rilgani)
-  const featured = movies.find((m) => m.poster_file_id) || movies[0];
-  if (!featured) {
-    els.heroBillboard.classList.add("hidden");
-    return;
-  }
-
-  if (featured.poster_file_id) {
-    els.heroBg.style.backgroundImage = `url('/api/poster/${featured.id}')`;
-  } else {
-    els.heroBg.style.backgroundImage = "none";
-  }
-
-  els.heroTitle.textContent = featured.title;
-  els.heroCat.textContent = CATEGORY_LABEL[featured.category] || "🎬 Kino";
-  els.heroCodeBadge.textContent = `🔑 Kod: ${featured.code}`;
-  els.heroDesc.textContent = featured.description || "Yuqori sifatli va unutilmas kino kartinasi. Hoziroq tomosha qiling!";
-
-  els.heroWatchBtn.onclick = (e) => {
-    e.stopPropagation();
-    openModal(featured);
-  };
-  els.heroDetailBtn.onclick = (e) => {
-    e.stopPropagation();
-    openModal(featured);
-  };
-  els.heroBillboard.onclick = () => openModal(featured);
-
-  els.heroBillboard.classList.remove("hidden");
-}
-
 async function loadHomeGrid() {
   skeletonCards(els.grid, 6);
   els.emptyState.classList.add("hidden");
@@ -261,9 +221,6 @@ async function loadHomeGrid() {
 
   els.grid.innerHTML = "";
   els.emptyState.classList.toggle("hidden", movies.length !== 0);
-
-  setupHeroBillboard(movies);
-
   movies.forEach((m, i) => els.grid.appendChild(buildCard(m, i)));
 }
 
