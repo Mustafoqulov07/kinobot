@@ -1,9 +1,8 @@
 services:
   - type: web
     name: kinobot
-    env: go
     plan: free
-    buildCommand: go build -o kinobot .
+    buildCommand: bash build.sh
     startCommand: ./kinobot
     envVars:
       - key: BOT_TOKEN
