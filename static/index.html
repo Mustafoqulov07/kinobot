@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/static/style.css?v=602">
+<link rel="stylesheet" href="/static/style.css?v=700">
 </head>
 <body>
 
@@ -46,6 +46,38 @@
         <svg class="search-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         <span class="search-trigger-placeholder">Kino nomi yoki 4 xonali kodi bilan qidirish...</span>
         <span class="search-trigger-badge">Qidiruv</span>
+      </div>
+    </div>
+
+    <!-- ============ CINEMATIC HERO SPOTLIGHT BILLBOARD ============ -->
+    <div id="heroBillboard" class="hero-spotlight-card hidden">
+      <div class="hero-bg-poster" id="heroBg"></div>
+      <div class="hero-gradient-scrim"></div>
+      <div class="hero-content">
+        <div class="hero-badge-row">
+          <span class="hero-spot-pill">
+            <span class="pulse-dot"></span> TOP PREMYERA
+          </span>
+          <span class="hero-quality-pill">4K UHD</span>
+        </div>
+        <h1 id="heroTitle" class="hero-title">Film Nomi</h1>
+        <div class="hero-meta-strip">
+          <span class="meta-star">⭐ 9.8</span>
+          <span class="meta-sep">•</span>
+          <span id="heroCat" class="meta-cat">🎬 Kino</span>
+          <span class="meta-sep">•</span>
+          <span id="heroCodeBadge" class="meta-code">🔑 Kod: 1024</span>
+        </div>
+        <p id="heroDesc" class="hero-desc"></p>
+        <div class="hero-btn-row">
+          <button id="heroWatchBtn" class="hero-play-action">
+            <span class="play-triangle">▶</span>
+            <span>Ko'rish</span>
+          </button>
+          <button id="heroDetailBtn" class="hero-info-action">
+            <span>ℹ️ Batafsil</span>
+          </button>
+        </div>
       </div>
     </div>
 
@@ -272,6 +304,7 @@
 <!-- ============ ULTRAGLASS DETAIL MODAL DRAWER ============ -->
 <div id="modalOverlay" class="modal-backdrop">
   <div class="modal-drawer">
+    <div id="modalBackdropBlur" class="modal-backdrop-blur"></div>
     <div class="modal-drag-handle"></div>
     <button id="modalClose" class="modal-icon-btn close-btn" aria-label="Yopish">✕</button>
     <button id="modalFav" class="modal-icon-btn fav-btn" aria-label="Sevimli">🤍</button>
@@ -300,6 +333,6 @@
   </div>
 </div>
 
-<script src="/static/app.js?v=602"></script>
+<script src="/static/app.js?v=700"></script>
 </body>
 </html>

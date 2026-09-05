@@ -25,6 +25,15 @@ const els = {
   searchSuggestions: document.getElementById("searchSuggestions"),
   searchTypeChips: document.querySelectorAll(".search-type-chip"),
   quickChips: document.querySelectorAll(".quick-chip"),
+  heroBillboard: document.getElementById("heroBillboard"),
+  heroBg: document.getElementById("heroBg"),
+  heroTitle: document.getElementById("heroTitle"),
+  heroCat: document.getElementById("heroCat"),
+  heroCodeBadge: document.getElementById("heroCodeBadge"),
+  heroDesc: document.getElementById("heroDesc"),
+  heroWatchBtn: document.getElementById("heroWatchBtn"),
+  heroDetailBtn: document.getElementById("heroDetailBtn"),
+  modalBackdropBlur: document.getElementById("modalBackdropBlur"),
   sectionNew: document.getElementById("sectionNew"),
   gridTitle: document.getElementById("gridTitle"),
   tabs: document.querySelectorAll(".tab-chip"),
@@ -112,7 +121,7 @@ function buildCard(movie, index = 0, rank = null) {
     : (CATEGORY_LABEL[movie.category] || "Kino");
   const badgeText = `${catSvg} <span>${badgeLabel}</span>`;
 
-  const rankHtml = rank ? `<div class="rank-badge">${rank}</div>` : "";
+  const rankHtml = rank ? `<div class="cinema-rank-number">${rank}</div>` : "";
 
   card.innerHTML = `
     ${rankHtml}
@@ -201,6 +210,44 @@ async function loadHomeCarousels() {
   }
 }
 
+function setupHeroBillboard(movies) {
+  if (!els.heroBillboard) return;
+  if (state.currentCategory || !movies || movies.length === 0) {
+    els.heroBillboard.classList.add("hidden");
+    return;
+  }
+
+  // Eng sara kino (posteri bor birinchisi yoki eng ko'p ko'rilgani)
+  const featured = movies.find((m) => m.poster_file_id) || movies[0];
+  if (!featured) {
+    els.heroBillboard.classList.add("hidden");
+    return;
+  }
+
+  if (featured.poster_file_id) {
+    els.heroBg.style.backgroundImage = `url('/api/poster/${featured.id}')`;
+  } else {
+    els.heroBg.style.backgroundImage = "none";
+  }
+
+  els.heroTitle.textContent = featured.title;
+  els.heroCat.textContent = CATEGORY_LABEL[featured.category] || "🎬 Kino";
+  els.heroCodeBadge.textContent = `🔑 Kod: ${featured.code}`;
+  els.heroDesc.textContent = featured.description || "Yuqori sifatli va unutilmas kino kartinasi. Hoziroq tomosha qiling!";
+
+  els.heroWatchBtn.onclick = (e) => {
+    e.stopPropagation();
+    openModal(featured);
+  };
+  els.heroDetailBtn.onclick = (e) => {
+    e.stopPropagation();
+    openModal(featured);
+  };
+  els.heroBillboard.onclick = () => openModal(featured);
+
+  els.heroBillboard.classList.remove("hidden");
+}
+
 async function loadHomeGrid() {
   skeletonCards(els.grid, 6);
   els.emptyState.classList.add("hidden");
@@ -214,6 +261,9 @@ async function loadHomeGrid() {
 
   els.grid.innerHTML = "";
   els.emptyState.classList.toggle("hidden", movies.length !== 0);
+
+  setupHeroBillboard(movies);
+
   movies.forEach((m, i) => els.grid.appendChild(buildCard(m, i)));
 }
 
@@ -332,6 +382,11 @@ async function openModal(movie) {
   els.modalPoster.innerHTML = movie.poster_file_id
     ? `<img src="/api/poster/${movie.id}" alt="" />`
     : `<div class="poster-fallback-vector">${catSvg}</div>`;
+  if (els.modalBackdropBlur) {
+    els.modalBackdropBlur.style.backgroundImage = movie.poster_file_id
+      ? `url('/api/poster/${movie.id}')`
+      : "none";
+  }
   els.modalFav.textContent = state.favoriteIds.has(movie.id) ? "❤️" : "🤍";
   els.watchStatus.textContent = "";
   els.modalOverlay.classList.add("open");
