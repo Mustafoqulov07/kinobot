@@ -16,7 +16,7 @@ const (
 
 Bu yerda minglab kino, multfilm va seriallarni bir joydan topib, to'g'ridan-to'g'ri shu yerda tomosha qilishingiz mumkin.
 
-👆 Yozish maydoni yonidagi <b>Kinolar</b> tugmasi orqali ilovani oching!`
+👇 Yozish maydoni yonidagi <b>Kinolar</b> tugmasi orqali ilovani oching!`
 
 	BtnAdmin = "✉️ Admin bilan bog'lanish"
 	BtnCodes = "🔑 Kino kodlari"
